@@ -1,2 +1,6 @@
 rook-ceph:
   enabled: true
+
+  # This is only valid of host clusters where the disk are physically attached to the nodes.
+  # Reference: https://rook.io/docs/rook/latest-release/Storage-Configuration/Monitoring/ceph-dashboard/#configure-the-dashboard
+  enableDiscoveryDaemon: true

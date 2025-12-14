@@ -20,7 +20,7 @@ rook-ceph-cluster:
     # enable the ceph dashboard for viewing cluster status
     dashboard:
       enabled: true
-      ssl: true
+      ssl: false
 
     # Network configuration, see: https://github.com/rook/rook/blob/master/Documentation/CRDs/Cluster/ceph-cluster-crd.md#network-configuration-settings
     network:

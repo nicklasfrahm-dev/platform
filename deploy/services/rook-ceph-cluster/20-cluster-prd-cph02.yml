@@ -23,16 +23,16 @@ rook-ceph-cluster:
           memory: "1000Mi"
       mon:
         limits:
-          memory: "1Gi"
+          memory: "500Mi"
         requests:
           cpu: "250m"
-          memory: "1Gi"
+          memory: "500Mi"
       osd:
         limits:
-          memory: "2Gi"
+          memory: "2000Mi"
         requests:
           cpu: "250m"
-          memory: "2Gi"
+          memory: "2000Mi"
       prepareosd:
         requests:
           cpu: "100m"
@@ -88,9 +88,8 @@ rook-ceph-cluster:
       # see https://github.com/rook/rook/blob/master/Documentation/CRDs/Block-Storage/ceph-block-pool-crd.md#spec for available configuration
       spec:
         failureDomain: host
-        erasureCoded:
-          dataChunks: 2
-          codingChunks: 1
+        replicated:
+          size: 3
       storageClass:
         enabled: true
         name: ceph-block
@@ -161,11 +160,6 @@ rook-ceph-cluster:
             failureDomain: host
             replicated:
               size: 3
-          - name: erasurecoded
-            failureDomain: host
-            erasureCoded:
-              dataChunks: 2
-              codingChunks: 1
         metadataServer:
           activeCount: 1
           activeStandby: true
@@ -216,11 +210,8 @@ rook-ceph-cluster:
             size: 3
         dataPool:
           failureDomain: host
-          erasureCoded:
-            dataChunks: 2
-            codingChunks: 1
-          parameters:
-            bulk: "true"
+          replicated:
+            size: 3
         preservePoolsOnDelete: true
         gateway:
           port: 80

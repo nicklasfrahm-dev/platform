@@ -1,0 +1,16 @@
+cluster:
+  bgpInstances:
+    cluster:
+      localASN: 65002
+      peers:
+        default:
+          peerASN: 65001
+
+loadBalancer:
+  ipPools:
+    loadbalancer:
+      enabled: true
+      blocks:
+        default:
+          enabled: true
+          cidr: 172.29.0.0/28

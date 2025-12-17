@@ -1,0 +1,39 @@
+apiVersion: cilium.io/v2
+kind: CiliumBGPClusterConfig
+metadata:
+  name: {{ .Release.Name | quote }}
+  labels: {{- include "bgp-loadbalancing.labels" . | nindent 4 }}
+spec:
+  nodeSelector:
+    {{- with .Values.cluster.nodeSelector.matchLabels }}
+    matchLabels: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.cluster.nodeSelector.matchExpressions }}
+    matchExpressions: {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- if .Values.cluster.bgpInstances }}
+  bgpInstances:
+    {{- range $name, $instance := .Values.cluster.bgpInstances }}
+    {{- if $instance.enabled }}
+    - name: {{ $name }}
+      localASN: {{ $instance.localASN }}
+      {{- if $instance.localPort }}
+      localPort: {{ $instance.localPort }}
+      {{- end }}
+      {{- if $instance.peers }}
+      peers:
+        {{- range $peerName, $peer := $instance.peers }}
+        {{- if $peer.enabled }}
+        - name: {{ $peerName }}
+          peerASN: {{ $peer.peerASN }}
+          {{- if $peer.autoDiscovery }}
+          autoDiscovery: {{- toYaml $peer.autoDiscovery | nindent 12 }}
+          {{- end }}
+          peerConfigRef:
+            name: {{ printf "%s-%s-%s" $.Release.Name $name $peerName | quote }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+  {{- end }}

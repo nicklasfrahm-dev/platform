@@ -1,0 +1,16 @@
+{{- range $poolName, $pool := .Values.loadBalancer.ipPools }}
+{{- if $pool.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $poolName | quote }}
+  labels: {{- include "bgp-loadbalancing.labels" $ | nindent 4 }}
+spec:
+  blocks:
+  {{- range $block := $pool.blocks }}
+    {{- if $block.enabled }}
+    - {{ omit $block "enabled" | toYaml | nindent 6 | trim }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

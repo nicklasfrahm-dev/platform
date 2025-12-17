@@ -9,7 +9,6 @@ apiVersion: cilium.io/v2
 kind: CiliumBGPAdvertisement
 metadata:
   name: {{ printf "%s-%s-%s-%s" $.Release.Name $instanceName $peerName $familyName | replace "/" "-" | quote }}
-  namespace: {{ $.Release.Namespace | quote }}
   labels:
     cilium.io/bgp-id: {{ printf "%s-%s-%s-%s" $.Release.Name $instanceName $peerName $familyName | replace "/" "-" | quote }}
     cilium.io/bgp-release: {{ $.Release.Name | quote }}

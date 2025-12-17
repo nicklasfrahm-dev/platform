@@ -2,7 +2,6 @@ apiVersion: cilium.io/v2
 kind: CiliumBGPClusterConfig
 metadata:
   name: {{ .Release.Name | quote }}
-  namespace: {{ .Release.Namespace | quote }}
   labels: {{- include "bgp-loadbalancing.labels" . | nindent 4 }}
 spec:
   nodeSelector:

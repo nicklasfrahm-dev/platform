@@ -39,7 +39,7 @@ cluster:
                       matchExpressions:
                         # No service has this label,
                         # so this will advertise all services.
-                        - key: "cilium.io/bgp-advertise"
+                        - key: "bgp-advertise"
                           operator: NotIn
                           values:
                             - "disabled"
@@ -48,9 +48,9 @@ cluster:
 # LoadBalancer IPs from a specific pool.
 loadBalancer:
   ipPools:
-    loadbalancer:
-      enabled: true
+    example-pool:
+      enabled: false
       blocks:
-        public:
+        example-block:
           enabled: true
-          cidr: 0.0.0.0/0
+          cidr: 10.0.0.0/24

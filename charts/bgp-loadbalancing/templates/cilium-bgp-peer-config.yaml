@@ -1,0 +1,40 @@
+{{- range $instanceName, $instance := .Values.cluster.bgpInstances }}
+{{- if $instance.enabled }}
+{{- range $peerName, $peer := $instance.peers }}
+{{- if $peer.enabled }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumBGPPeerConfig
+metadata:
+  name: {{ printf "%s-%s-%s" $.Release.Name $instanceName $peerName | quote }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels: {{- include "bgp-loadbalancing.labels" $ | nindent 4 }}
+spec:
+  {{- if $peer.peerConfig.timers }}
+  timers: {{- toYaml $peer.peerConfig.timers | nindent 4 }}
+  {{- end }}
+  {{- if $peer.peerConfig.gracefulRestart }}
+  gracefulRestart:
+    enabled: true
+    {{- toYaml $peer.peerConfig.gracefulRestart | nindent 4 }}
+  {{- end }}
+  families:
+    {{- range $familyName, $family := $peer.peerConfig.families }}
+    {{- if $family.enabled }}
+    - afi: {{ (splitList "/" $familyName) | first }}
+      safi: {{ (splitList "/" $familyName) | last }}
+      advertisements:
+        matchLabels:
+          # These labels are not magic or somehow special to Cilium. I just
+          # use them to identify which advertisements belong to which BGP peer.
+          cilium.io/bgp-id: {{ printf "%s-%s-%s-%s" $.Release.Name $instanceName $peerName $familyName | replace "/" "-" | quote }}
+          cilium.io/bgp-release: {{ $.Release.Name | quote }}
+          cilium.io/bgp-instance: {{ $instanceName | quote }}
+          cilium.io/bgp-peer: {{ $peerName | quote }}
+          cilium.io/bgp-family: {{ $familyName | quote }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

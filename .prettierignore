@@ -1,2 +1,3 @@
 *.tf
-charts/**/templates/**
+charts/**/*.yaml
+charts/**/*.yml

@@ -1,0 +1,56 @@
+cluster:
+  # This configures which nodes will run BGP instances.
+  nodeSelector:
+    # Use a simple label match to select nodes.
+    # kubernetes.io/os: linux
+    matchLabels: {}
+    # Use more complex expressions.
+    matchExpressions:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: Exists
+  bgpInstances:
+    mycluster01:
+      enabled: false
+      localASN: 65002
+      localPort: 179
+      peers:
+        tor:
+          enabled: true
+          peerASN: 65001
+          autoDiscovery:
+            mode: "DefaultGateway"
+            defaultGateway:
+              addressFamily: ipv4
+          peerConfig:
+            timers:
+              holdTimeSeconds: 9
+              keepAliveTimeSeconds: 3
+            gracefulRestart:
+              restartTimeSeconds: 30
+            families:
+              ipv4/unicast:
+                enabled: true
+                advertisements:
+                  service:
+                    enabled: true
+                    addresses:
+                      - LoadBalancerIP
+                    selector:
+                      matchExpressions:
+                        # No service has this label,
+                        # so this will advertise all services.
+                        - key: "bgp-advertise"
+                          operator: NotIn
+                          values:
+                            - "disabled"
+
+# This configures the IPAM to automatically allocate
+# LoadBalancer IPs from a specific pool.
+loadBalancer:
+  ipPools:
+    example-pool:
+      enabled: false
+      blocks:
+        example-block:
+          enabled: true
+          cidr: 10.0.0.0/24

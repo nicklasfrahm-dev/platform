@@ -1,0 +1,36 @@
+{{- range $instanceName, $instance := .Values.cluster.bgpInstances }}
+{{- if $instance.enabled }}
+{{- range $peerName, $peer := $instance.peers }}
+{{- if $peer.enabled }}
+{{- range $familyName, $family := $peer.peerConfig.families }}
+{{- if $family.enabled }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumBGPAdvertisement
+metadata:
+  name: {{ printf "%s-%s-%s-%s" $.Release.Name $instanceName $peerName $familyName | replace "/" "-" | quote }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    cilium.io/bgp-id: {{ printf "%s-%s-%s-%s" $.Release.Name $instanceName $peerName $familyName | replace "/" "-" | quote }}
+    cilium.io/bgp-release: {{ $.Release.Name | quote }}
+    cilium.io/bgp-instance: {{ $instanceName | quote }}
+    cilium.io/bgp-peer: {{ $peerName | quote }}
+    cilium.io/bgp-family: {{ $familyName | quote }}
+    {{- include "bgp-loadbalancing.labels" $ | nindent 4 }}
+spec:
+  advertisements:
+    {{- if $family.advertisements.service }}
+    - advertisementType: "Service"
+      service:
+        addresses: {{- toYaml $family.advertisements.service.addresses | nindent 10 }}
+      selector:
+        {{- if $family.advertisements.service.selector.matchExpressions }}
+        matchExpressions: {{- toYaml $family.advertisements.service.selector.matchExpressions | nindent 10 }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

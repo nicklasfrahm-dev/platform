@@ -14,7 +14,7 @@ cluster:
       localASN: 65002
       localPort: 179
       peers:
-        tor:
+        default:
           enabled: true
           peerASN: 65001
           autoDiscovery:
@@ -51,6 +51,6 @@ loadBalancer:
     loadbalancer:
       enabled: true
       blocks:
-        public:
+        default:
           enabled: true
           cidr: 0.0.0.0/0

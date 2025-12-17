@@ -30,7 +30,7 @@ spec:
           cilium.io/bgp-release: {{ $.Release.Name | quote }}
           cilium.io/bgp-instance: {{ $instanceName | quote }}
           cilium.io/bgp-peer: {{ $peerName | quote }}
-          cilium.io/bgp-family: {{ $familyName | quote }}
+          cilium.io/bgp-family: {{ $familyName | replace "/" "-" | quote }}
     {{- end }}
     {{- end }}
 {{- end }}

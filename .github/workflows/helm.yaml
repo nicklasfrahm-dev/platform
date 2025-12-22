@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: Upload diffs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         id: diff-upload
         if: steps.diff.outputs.changed != '0' && steps.diff.outputs.long == '1'
         with:

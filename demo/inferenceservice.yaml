@@ -1,0 +1,20 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: parakeet-asr
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: triton
+        triton:
+          backend: pytorch # or 'onnxruntime' if using ONNX
+      storageUri: "oci://ghcr.io/nicklasfrahm/models/parakeet:v3.0.2"
+    resources:
+      requests:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: "1"
+      limits:
+        memory: "8Gi"
+        nvidia.com/gpu: "1"

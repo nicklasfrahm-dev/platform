@@ -87,6 +87,13 @@ cilium:
       enabled: true
     ui:
       enabled: true
+    tls:
+      auto:
+        # Use a CronJob to periodically regenerate Hubble certificates to
+        # avoid TLS errors caused by expired certificates.
+        method: cronJob
+        # Regenerate certificates monthly to stay well within the 1-year validity window.
+        schedule: "0 0 1 * *"
 
   # Enable BGP peering.
   # Docs: https://docs.cilium.io/en/latest/network/bgp-control-plane/bgp-control-plane/

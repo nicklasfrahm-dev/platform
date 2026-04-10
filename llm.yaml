@@ -1,0 +1,102 @@
+# -----------------------------
+# ClusterServingRuntime (vLLM)
+# -----------------------------
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: vllm-coder-runtime
+spec:
+  supportedModelFormats:
+    - name: huggingface
+      version: "1"
+      autoSelect: true
+  containers:
+    - name: kserve-container
+      image: vllm/vllm-openai:v0.19.0
+      command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+      args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=1
+        - --gpu-memory-utilization=0.9
+        - --max-model-len=6144 # slightly reduced for stability
+        - --dtype=auto
+        - --trust-remote-code
+        - --quantization=awq
+        - --enable-auto-tool-choice
+        - --tool-call-parser=llama3_json
+        - --max-num-seqs=2 # 👈 CRITICAL: limit batching / queue depth
+      env:
+        - name: MODEL_ID
+          value: ""
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "14Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "14Gi"
+      ports:
+        - containerPort: 8000
+
+---
+# -----------------------------
+# InferenceService (Coder)
+# -----------------------------
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: coder-qwen25
+spec:
+  predictor:
+    nodeSelector:
+      feature.node.kubernetes.io/pci-10de.present: "true"
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+    model:
+      modelFormat:
+        name: huggingface
+      runtime: vllm-coder-runtime
+      storageUri: "hf://Qwen/Qwen2.5-Coder-7B-Instruct"
+      env:
+        - name: MODEL_ID
+          value: "Qwen/Qwen2.5-Coder-7B-Instruct"
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+
+---
+# -----------------------------
+# HTTPRoute (Gateway API)
+# -----------------------------
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kserve-route
+spec:
+  hostnames:
+    - llm.cph02.nicklasfrahm.dev
+  parentRefs:
+    - name: shared-http
+      namespace: platform
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: coder-qwen25-predictor-default
+          port: 80

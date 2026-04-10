@@ -4,10 +4,11 @@ set -euo pipefail
 
 cluster_dir=""
 cluster_name=""
+reboot=false
 
 preflight_check() {
-  if [ "$#" -ne 1 ]; then
-    echo "ℹ️  Usage: $0 <cluster-directory>"
+  if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    echo "ℹ️  Usage: $0 <cluster-directory> [--reboot]"
     exit 1
   fi
 
@@ -16,7 +17,7 @@ preflight_check() {
       exit 1
   fi
 
-  dependencies=(talosctl yq)
+  dependencies=(talosctl yq kubectl)
   for cmd in "${dependencies[@]}"; do
     if ! command -v "$cmd" &> /dev/null; then
       echo "❌ Error: failed to find required command: $cmd"
@@ -37,6 +38,40 @@ check_required_files() {
   done
 }
 
+wait_for_node_ready() {
+  local name="$1"
+  local host="$2"
+  local talosconfig="$cluster_dir/talosconfig"
+  local timeout=300
+  local interval=5
+  local elapsed=0
+
+  echo "⏳ Info: Waiting for node to become ready (${host}/${name:-unknown})"
+
+  # Wait for Talos to come back up (machined responding).
+  while ! timeout 5s talosctl --talosconfig "$talosconfig" --nodes "$host" --endpoints "$host" version &>/dev/null; do
+    sleep "$interval"
+    elapsed=$((elapsed + interval))
+    if [ "$elapsed" -ge "$timeout" ]; then
+      echo "❌ Error: Timed out waiting for Talos to come back up (${host}/${name:-unknown})"
+      return 1
+    fi
+  done
+
+  # Wait for the Kubernetes node to be Ready.
+  if [ -n "$name" ]; then
+    while ! kubectl wait node "$name" --for=condition=Ready --timeout="${interval}s" &>/dev/null; do
+      elapsed=$((elapsed + interval))
+      if [ "$elapsed" -ge "$timeout" ]; then
+        echo "❌ Error: Timed out waiting for Kubernetes node to be Ready (${host}/${name:-unknown})"
+        return 1
+      fi
+    done
+  fi
+
+  echo "✅ Info: Node is ready (${host}/${name:-unknown})"
+}
+
 apply_config_to_node() {
   local host="$1"
   local name="$2"
@@ -45,9 +80,19 @@ apply_config_to_node() {
 
   echo "✅ Info: Applying configuration (${host}/${name:-unknown})"
 
-  extra_args=()
+  # Build a per-node config: strip HostnameConfig from the generated file and
+  # append a clean one with the static hostname. This avoids conflicts between
+  # the generated "auto: stable" HostnameConfig and the per-node hostname patch,
+  # which Talos v1.12+ rejects when both fields are present.
+  tmp_config=$(mktemp --suffix=.yaml)
+  cleanup() { rm -f "$tmp_config"; }
+  trap cleanup RETURN
+
   if [ -n "$name" ]; then
-    extra_args+=("-p" "[{\"op\": \"replace\", \"path\": \"/machine/network/hostname\", \"value\": \"$name\"}]")
+    yq 'select(.kind != "HostnameConfig")' "$config_file" > "$tmp_config"
+    printf -- "---\napiVersion: v1alpha1\nkind: HostnameConfig\nhostname: %s\n" "$name" >> "$tmp_config"
+  else
+    cp "$config_file" "$tmp_config"
   fi
 
   # Use timeout to handle unreachable nodes.
@@ -55,27 +100,29 @@ apply_config_to_node() {
     --talosconfig "$talosconfig" \
     --endpoints "$host" \
     --nodes "$host" \
-    --file "$config_file" \
-    "${extra_args[@]}"; then
+    --file "$tmp_config"; then
     echo "✅ Info: Successfully applied configuration (${host}/${name:-unknown})"
-    return 0
+  else
+    # Try to apply the config in maintenance mode if the normal apply failed.
+    echo "⚠️  Warn: Normal apply failed, trying maintenance mode (${host}/${name:-unknown})"
+    if timeout 10s talosctl apply \
+      --talosconfig "$talosconfig" \
+      --endpoints "$host" \
+      --nodes "$host" \
+      --file "$tmp_config" \
+      --insecure; then
+      echo "✅ Info: Successfully applied configuration in maintenance mode (${host}/${name:-unknown})"
+    else
+      echo "❌ Error: Failed to apply configuration (${host}/${name:-unknown})"
+      return 1
+    fi
   fi
 
-  # Try to apply the config in maintenance mode if the normal apply failed.
-  echo "⚠️  Warn: Normal apply failed, trying maintenance mode (${host}/${name:-unknown})"
-  if timeout 10s talosctl apply \
-    --talosconfig "$talosconfig" \
-    --endpoints "$host" \
-    --nodes "$host" \
-    --file "$config_file" \
-    --insecure \
-    "${extra_args[@]}"; then
-    echo "✅ Info: Successfully applied configuration in maintenance mode (${host}/${name:-unknown})"
-    return 0
+  if [ "$reboot" = true ]; then
+    echo "🔄 Info: Rebooting node (${host}/${name:-unknown})"
+    talosctl --talosconfig "$talosconfig" --nodes "$host" --endpoints "$host" reboot
+    wait_for_node_ready "$name" "$host"
   fi
-
-  echo "❌ Error: Failed to apply configuration (${host}/${name:-unknown})"
-  return 1
 }
 
 apply_talos_configs() {
@@ -153,6 +200,10 @@ main() {
 
   # Strip trailing slash if any.
   cluster_dir="${1%/}"
+
+  if [ "${2:-}" = "--reboot" ]; then
+    reboot=true
+  fi
 
   check_required_files
 

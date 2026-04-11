@@ -49,6 +49,33 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 
 ---
 
+## Qwen/Qwen2.5-32B-Instruct-AWQ
+
+**Model**: `Qwen/Qwen2.5-32B-Instruct-AWQ`
+**Quantization**: AWQ 4-bit
+**Config**: `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2`
+
+| Metric | Value |
+|--------|-------|
+| Requests | 50 |
+| Successful | 4 |
+| Failed (timeout) | 46 |
+| Total time | 144.70 s |
+| Request throughput | 0.03 req/s |
+| Output token throughput | 5.53 tok/s |
+| Total token throughput | 6.61 tok/s |
+| Latency mean | 87.200 s |
+| Latency median | 87.164 s |
+| Latency stdev | 33.309 s |
+| Latency P90 | 116.178 s |
+| Latency P99 | 116.178 s |
+| Latency min | 58.296 s |
+| Latency max | 116.178 s |
+
+> **Note**: The 32B model is ~4.6× larger than the 7B model, resulting in ~5× lower output throughput (5.53 vs 27.90 tok/s) and ~46% higher mean latency (87 vs 61 s). The 46 failures are due to the same queue-depth issue as above. Both models run with `--max-num-seqs=2` which severely limits concurrency; a lower request rate (≤0.2 req/s) would eliminate queue build-up for the 32B model.
+
+---
+
 ## cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit
 
 **Model**: `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit` (Google Gemma 4 27B MoE, 4B active parameters)
@@ -56,7 +83,7 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 
 **Status**: ❌ Incompatible with vLLM 0.19.0
 
-**Root cause**: The `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit` model was quantized with HuggingFace `transformers` v5.x. vLLM 0.19.0 requires `transformers<5,>=4.56.0`, and the `gemma4` model architecture is not registered in the transformers 4.x series bundled in the vLLM container.
+**Root cause**: The `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit` model requires HuggingFace `transformers` v5.x for the `gemma4` architecture. vLLM 0.19.0 requires `transformers<5,>=4.56.0` and the `gemma4` model type is not registered in the transformers 4.x series bundled in the vLLM container.
 
 **Error**:
 ```
@@ -65,4 +92,4 @@ pydantic_core._pydantic_core.ValidationError: 1 validation error for ModelConfig
   but Transformers does not recognize this architecture.
 ```
 
-**Fix**: Either upgrade to a vLLM release that ships with `transformers>=5.0` support, or use a Gemma 4 AWQ checkpoint that was produced with the transformers 4.x API (e.g. a model with a `config.json` targeting `transformers==4.5x.y`).
+**Fix**: Upgrade to a vLLM release that ships with `transformers>=5.0` support.

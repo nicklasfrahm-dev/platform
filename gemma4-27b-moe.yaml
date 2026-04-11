@@ -1,0 +1,102 @@
+# -----------------------------
+# ClusterServingRuntime (vLLM / Gemma 4)
+# -----------------------------
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: vllm-gemma4-runtime
+spec:
+  supportedModelFormats:
+    - name: huggingface
+      version: "1"
+      autoSelect: false
+  containers:
+    - name: kserve-container
+      image: vllm/vllm-openai:v0.19.0
+      command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+      args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=1
+        - --gpu-memory-utilization=0.95
+        - --max-model-len=4096
+        - --dtype=auto
+        - --trust-remote-code
+        - --quantization=awq
+        - --max-num-seqs=2 # limit batching / queue depth
+      env:
+        - name: MODEL_ID
+          value: ""
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "10Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "10Gi"
+      ports:
+        - containerPort: 8000
+
+---
+# -----------------------------
+# InferenceService (Gemma 4 27B MoE)
+# -----------------------------
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: gemma4-moe
+spec:
+  predictor:
+    deploymentStrategy:
+      type: Recreate
+    runtimeClassName: nvidia
+    nodeSelector:
+      feature.node.kubernetes.io/pci-10de.present: "true"
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+    model:
+      modelFormat:
+        name: huggingface
+      runtime: vllm-gemma4-runtime
+      env:
+        - name: MODEL_ID
+          value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "10Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "10Gi"
+
+---
+# -----------------------------
+# HTTPRoute (Gateway API) — points to Gemma 4
+# -----------------------------
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kserve-route
+spec:
+  hostnames:
+    - llm.cph02.nicklasfrahm.dev
+  parentRefs:
+    - name: shared-http
+      namespace: platform
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gemma4-moe-predictor
+          port: 80

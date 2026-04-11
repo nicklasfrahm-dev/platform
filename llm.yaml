@@ -39,10 +39,10 @@ spec:
       resources:
         limits:
           nvidia.com/gpu: 1
-          memory: "14Gi"
+          memory: "10Gi"
         requests:
           nvidia.com/gpu: 1
-          memory: "14Gi"
+          memory: "10Gi"
       ports:
         - containerPort: 8000
 
@@ -56,6 +56,9 @@ metadata:
   name: coder-qwen25
 spec:
   predictor:
+    deploymentStrategy:
+      type: Recreate
+    runtimeClassName: nvidia
     nodeSelector:
       feature.node.kubernetes.io/pci-10de.present: "true"
     tolerations:
@@ -66,17 +69,16 @@ spec:
       modelFormat:
         name: huggingface
       runtime: vllm-coder-runtime
-      storageUri: "hf://Qwen/Qwen2.5-Coder-7B-Instruct"
       env:
         - name: MODEL_ID
-          value: "Qwen/Qwen2.5-Coder-7B-Instruct"
+          value: "Qwen/Qwen2.5-Coder-7B-Instruct-AWQ"
       resources:
         limits:
           nvidia.com/gpu: 1
-          memory: "12Gi"
+          memory: "10Gi"
         requests:
           nvidia.com/gpu: 1
-          memory: "12Gi"
+          memory: "10Gi"
 
 ---
 # -----------------------------

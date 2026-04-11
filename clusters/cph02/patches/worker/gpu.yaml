@@ -1,6 +1,13 @@
 machine:
   install:
     image: factory.talos.dev/installer/af8eb82417d3deaa94d2ef19c3b590b0dac1b2549d0b9b35b3da2bc325de75f7:v1.12.6
+  # The worker.yaml template uses the default service CIDR (10.96.0.0/12), which causes
+  # kubelet to inject 10.96.0.10 into pods' resolv.conf instead of the correct 172.30.0.10.
+  # Cilium's BPF DNS interception does not reliably redirect 10.96.0.10 on GPU nodes,
+  # so we set clusterDNS explicitly to match the actual CoreDNS service IP.
+  kubelet:
+    clusterDNS:
+      - 172.30.0.10
   kernel:
     modules:
       - name: nvidia

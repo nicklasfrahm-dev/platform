@@ -100,5 +100,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: coder-qwen25-predictor-default
+        - name: coder-qwen25-predictor
           port: 80

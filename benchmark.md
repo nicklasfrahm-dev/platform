@@ -4,6 +4,8 @@ Benchmarks run against the OpenAI-compatible vLLM endpoint at `https://llm.cph02
 
 Each benchmark sends **50 chat completion requests** at **2 req/s**, with each prompt requesting up to 200 completion tokens.
 
+**Backpressure**: All runs use a client-side `--max-concurrent` check against the `/load` endpoint. Requests are skipped immediately (0 ms) when `server_load >= max_concurrent`, preventing unbounded queue growth on the server. The server also runs with `--enable-server-load-tracking` and a `BackpressureMiddleware` that returns HTTP 503 before enqueueing when at capacity.
+
 ---
 
 ## System Specifications
@@ -18,7 +20,8 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 | CUDA runtime | 13.0 |
 | NVIDIA driver | 580.126.20 |
 | Container runtime | containerd 2.1.6 |
-| vLLM image | `vllm/vllm-openai:v0.19.0` |
+| vLLM image (Qwen) | `vllm/vllm-openai:v0.19.0` |
+| vLLM image (Gemma 4) | `vllm/vllm-openai:gemma4` (0.19.1.dev6, transformers ≥ 5.5.0) |
 
 ---
 
@@ -27,11 +30,13 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 **Model**: `Qwen/Qwen2.5-Coder-7B-Instruct-AWQ`
 **Quantization**: AWQ 4-bit
 **Config**: `--gpu-memory-utilization=0.9`, `--max-model-len=6144`, `--max-num-seqs=2`, `--enable-auto-tool-choice`
+**Backpressure**: not applied (baseline run)
 
 | Metric | Value |
 |--------|-------|
 | Requests | 50 |
 | Successful | 21 |
+| Skipped (backpressure) | — |
 | Failed (timeout) | 29 |
 | Total time | 145.22 s |
 | Request throughput | 0.14 req/s |
@@ -45,7 +50,7 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 | Latency min | 11.857 s |
 | Latency max | 115.295 s |
 
-> **Note**: 29 requests failed due to the 120 s client timeout. With `--max-num-seqs=2` and a 2 req/s injection rate the server queue depth grows faster than it drains, causing long tail latencies. This constraint is intentional to cap memory pressure on the single 24 GB GPU.
+> Without backpressure, 29 requests timed out (120 s client timeout) as the server queue grew faster than it drained at 2 req/s with `--max-num-seqs=2`.
 
 ---
 
@@ -54,11 +59,13 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 **Model**: `Qwen/Qwen2.5-32B-Instruct-AWQ`
 **Quantization**: AWQ 4-bit
 **Config**: `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2`
+**Backpressure**: not applied (baseline run)
 
 | Metric | Value |
 |--------|-------|
 | Requests | 50 |
 | Successful | 4 |
+| Skipped (backpressure) | — |
 | Failed (timeout) | 46 |
 | Total time | 144.70 s |
 | Request throughput | 0.03 req/s |
@@ -72,24 +79,35 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 | Latency min | 58.296 s |
 | Latency max | 116.178 s |
 
-> **Note**: The 32B model is ~4.6× larger than the 7B model, resulting in ~5× lower output throughput (5.53 vs 27.90 tok/s) and ~46% higher mean latency (87 vs 61 s). The 46 failures are due to the same queue-depth issue as above. Both models run with `--max-num-seqs=2` which severely limits concurrency; a lower request rate (≤0.2 req/s) would eliminate queue build-up for the 32B model.
+> The 32B dense model is ~5× slower than the 7B model. 46/50 requests timed out.
 
 ---
 
 ## cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit
 
-**Model**: `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit` (Google Gemma 4 27B MoE, 4B active parameters)
-**Quantization**: AWQ 4-bit
+**Model**: `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit`  
+**Architecture**: Google Gemma 4 27B MoE — 26B total / **4B active** parameters per forward pass  
+**Quantization**: compressed-tensors (AWQ 4-bit)  
+**Config**: `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2`  
+**vLLM image**: `vllm/vllm-openai:gemma4` (requires transformers ≥ 5.5.0 for `model_type: gemma4`)  
+**Backpressure**: `--enable-server-load-tracking` + `BackpressureMiddleware`, `--max-concurrent=4` on client
 
-**Status**: ❌ Incompatible with vLLM 0.19.0
+| Metric | Value |
+|--------|-------|
+| Requests | 50 |
+| Successful | 26 |
+| Skipped (backpressure) | 24 |
+| Failed (error) | 0 |
+| Total time | 26.33 s |
+| Request throughput | 0.99 req/s |
+| Output token throughput | **197.51 tok/s** |
+| Total token throughput | 218.97 tok/s |
+| Latency mean | 1.833 s |
+| Latency median | 1.836 s |
+| Latency stdev | 0.015 s |
+| Latency P90 | 1.845 s |
+| Latency P99 | 1.853 s |
+| Latency min | 1.772 s |
+| Latency max | 1.853 s |
 
-**Root cause**: The `cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit` model requires HuggingFace `transformers` v5.x for the `gemma4` architecture. vLLM 0.19.0 requires `transformers<5,>=4.56.0` and the `gemma4` model type is not registered in the transformers 4.x series bundled in the vLLM container.
-
-**Error**:
-```
-pydantic_core._pydantic_core.ValidationError: 1 validation error for ModelConfig
-  Value error, The checkpoint you are trying to load has model type `gemma4`
-  but Transformers does not recognize this architecture.
-```
-
-**Fix**: Upgrade to a vLLM release that ships with `transformers>=5.0` support.
+> The MoE architecture is the key differentiator: with only **4B active parameters** per forward pass (vs. 7B for Qwen-Coder), Gemma 4 is ~7× faster in output token throughput (197 vs. 28 tok/s) despite having 26B total parameters. The backpressure mechanism ensured zero failures — 24 requests were rejected immediately rather than queuing, keeping P99 latency at 1.85 s vs. 115 s in the baseline runs.

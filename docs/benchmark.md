@@ -30,8 +30,8 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 
 | Model | Quantization | Config |
 |-------|-------------|--------|
-| [`Qwen/Qwen2.5-Coder-7B-Instruct-AWQ`](../qwen25-coder.yaml) | `awq` / `awq_marlin` | `--gpu-memory-utilization=0.9`, `--max-model-len=6144`, `--max-num-seqs=2`, `--enable-auto-tool-choice` |
-| [`cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit`](../gemma4-27b-moe.yaml) | `compressed-tensors` | `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2` |
+| [`Qwen/Qwen2.5-Coder-7B-Instruct-AWQ`](../deploy/manifests/llm/qwen25-coder.yaml) | `awq` / `awq_marlin` | `--gpu-memory-utilization=0.9`, `--max-model-len=6144`, `--max-num-seqs=2`, `--enable-auto-tool-choice` |
+| [`cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit`](../deploy/manifests/llm/gemma4-27b-moe.yaml) | `compressed-tensors` | `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2` |
 
 > **Note on `awq_marlin` for Gemma 4**: not applicable — the model's `config.json` declares `quantization_config.quant_type: compressed-tensors`. vLLM validates this at startup and rejects any other value. A re-quantized checkpoint declaring `awq` would be needed to use Marlin kernels.
 

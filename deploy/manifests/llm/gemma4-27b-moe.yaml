@@ -31,7 +31,7 @@ spec:
           from starlette.middleware.base import BaseHTTPMiddleware
           from starlette.responses import JSONResponse
 
-          MAX_CONCURRENT = 2  # mirrors --max-num-seqs
+          MAX_CONCURRENT = 4  # mirrors --max-num-seqs
 
           class BackpressureMiddleware(BaseHTTPMiddleware):
               async def dispatch(self, request, call_next):
@@ -60,13 +60,17 @@ spec:
             --model="${MODEL_ID}" \
             --tensor-parallel-size=1 \
             --gpu-memory-utilization=0.95 \
-            --max-model-len=4096 \
+            --max-model-len=65535 \
             --dtype=auto \
             --trust-remote-code \
             --quantization=compressed-tensors \
-            --max-num-seqs=2 \
+            --max-num-seqs=4 \
             --enable-server-load-tracking \
-            --middleware=backpressure.BackpressureMiddleware
+            --middleware=backpressure.BackpressureMiddleware \
+            --enable-auto-tool-choice \
+            --tool-call-parser=gemma4 \
+            --reasoning-parser=gemma4 \
+            --chat-template=examples/tool_chat_template_gemma4.jinja
       env:
         - name: MODEL_ID
           value: ""

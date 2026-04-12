@@ -25,7 +25,7 @@ spec:
           from starlette.middleware.base import BaseHTTPMiddleware
           from starlette.responses import JSONResponse
 
-          MAX_CONCURRENT = 2  # mirrors --max-num-seqs
+          MAX_CONCURRENT = 4  # mirrors --max-num-seqs
 
           class BackpressureMiddleware(BaseHTTPMiddleware):
               async def dispatch(self, request, call_next):
@@ -54,13 +54,13 @@ spec:
             --model="${MODEL_ID}" \
             --tensor-parallel-size=1 \
             --gpu-memory-utilization=0.9 \
-            --max-model-len=6144 \
+            --max-model-len=32768 \
             --dtype=auto \
             --trust-remote-code \
             --quantization=awq_marlin \
             --enable-auto-tool-choice \
             --tool-call-parser=llama3_json \
-            --max-num-seqs=2 \
+            --max-num-seqs=4 \
             --enable-server-load-tracking \
             --middleware=backpressure.BackpressureMiddleware
       env:
@@ -74,10 +74,10 @@ spec:
       resources:
         limits:
           nvidia.com/gpu: 1
-          memory: "10Gi"
+          memory: "11Gi"
         requests:
           nvidia.com/gpu: 1
-          memory: "10Gi"
+          memory: "11Gi"
       ports:
         - containerPort: 8000
 
@@ -110,10 +110,10 @@ spec:
       resources:
         limits:
           nvidia.com/gpu: 1
-          memory: "10Gi"
+          memory: "11Gi"
         requests:
           nvidia.com/gpu: 1
-          memory: "10Gi"
+          memory: "11Gi"
 
 ---
 # -----------------------------

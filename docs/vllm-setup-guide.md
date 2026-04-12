@@ -1,4 +1,3 @@
-README.md
 # Setting up Crush with a private vLLM instance
 
 To configure Crush to use your private vLLM instance, you need to edit your `crush.json` file located at `~/.local/share/crush/crush.json`.

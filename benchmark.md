@@ -83,6 +83,7 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 **Quantization**: `compressed-tensors` (AWQ 4-bit)
 **Config**: `--gpu-memory-utilization=0.95`, `--max-model-len=4096`, `--max-num-seqs=2`
 **vLLM image**: `vllm/vllm-openai:gemma4` (requires transformers ≥ 5.5.0)
+**Note on `awq_marlin`**: not applicable — the model's `config.json` declares `quantization_config.quant_type: compressed-tensors`. vLLM validates this against the `--quantization` argument at startup and rejects any value other than `compressed-tensors`. To use Marlin kernels with Gemma 4 a re-quantized checkpoint declaring `awq` would be needed.
 
 | Metric | Value |
 |--------|-------|

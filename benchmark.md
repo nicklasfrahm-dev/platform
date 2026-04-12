@@ -33,20 +33,20 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 | Metric | Value |
 |--------|-------|
 | Requests | 50 |
-| Successful | 4 |
-| Skipped (backpressure) | 46 |
+| Successful | 5 |
+| Skipped (backpressure) | 45 |
 | Failed (error) | 0 |
-| Total time | 25.57 s |
-| Request throughput | 0.16 req/s |
-| Output token throughput | 31.28 tok/s |
-| Total token throughput | 37.27 tok/s |
-| Latency mean | 12.185 s |
-| Latency median | 12.182 s |
-| Latency stdev | 0.237 s |
-| Latency P90 | 12.438 s |
-| Latency P99 | 12.438 s |
-| Latency min | 11.937 s |
-| Latency max | 12.438 s |
+| Total time | 36.52 s |
+| Request throughput | 0.14 req/s |
+| Output token throughput | 27.38 tok/s |
+| Total token throughput | 32.67 tok/s |
+| Latency mean | 12.062 s |
+| Latency median | 11.958 s |
+| Latency stdev | 0.234 s |
+| Latency P90 | 12.458 s |
+| Latency P99 | 12.458 s |
+| Latency min | 11.887 s |
+| Latency max | 12.458 s |
 
 ---
 

@@ -7,7 +7,7 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
 1. **Identify your vLLM endpoint**: This is the URL where your vLLM server is running (e.g., `http://your-server-ip:8000/v1`).
 2. **Edit `crush.json`**: Add or update the `providers` section with a `vllm` entry using the `openai-compat` type.
 
-### Example Configuration
+### Example Configuration (Based on your setup)
 
 ```json
 {
@@ -15,14 +15,19 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
   "providers": {
     "vllm": {
       "type": "openai-compat",
-      "base_url": "http://YOUR_PRIVATE_IP:8000/v1",
-      "api_key": "your-api-key-if-any",
+      "base_url": "https://llm.cph02.nicklasfrahm.dev/v1",
+      "api_key": "dummy",
       "models": [
         {
-          "id": "model-name-in-vllm",
-          "name": "Friendly Model Name",
-          "context_window": 32768,
-          "default_max_tokens": 4096
+          "id": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
+          "name": "Gemma 4 26B A4B AWQ 4bit",
+          "context_window": 65535,
+          "default_max_tokens": 8192,
+          "extra_body": {
+            "chat_template_kwargs": {
+              "enable_thinking": true
+            }
+          }
         }
       ]
     }

@@ -17,7 +17,7 @@ Each benchmark sends **50 chat completion requests** at **2 req/s**, with each p
 | Node | `deer` (Talos v1.12.6, kernel 6.18.18-talos) |
 | GPU | NVIDIA GeForce RTX 3090 (Ampere, compute 8.6) |
 | VRAM | 24,576 MiB |
-| CPU | 4 vCPUs |
+| CPU | Intel Core i3-7100 @ 3.90 GHz (4 vCPUs) |
 | RAM | ~15.5 GiB |
 | CUDA runtime | 13.0 |
 | NVIDIA driver | 580.126.20 |

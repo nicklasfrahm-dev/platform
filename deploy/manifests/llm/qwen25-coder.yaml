@@ -59,7 +59,7 @@ spec:
             --trust-remote-code \
             --quantization=awq_marlin \
             --enable-auto-tool-choice \
-            --tool-call-parser=llama3_json \
+            --tool-call-parser=hermes \
             --max-num-seqs=4 \
             --enable-server-load-tracking \
             --middleware=backpressure.BackpressureMiddleware

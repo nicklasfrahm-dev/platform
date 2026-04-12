@@ -26,3 +26,7 @@ via three high-level steps:
 - **Linting**: The charts are linted using the `helm lint` command.
 - **Diffing**: The charts are diffed against the latest version.
 - **Versioning**: The chart version is validated on every PR.
+
+## LLM Inference Benchmarks
+
+GPU inference benchmarks run on `deer` (RTX 3090 24 GB) via KServe / vLLM at `llm.cph02.nicklasfrahm.dev`. Full results in [`docs/benchmark.md`](./docs/benchmark.md).

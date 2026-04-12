@@ -29,6 +29,4 @@ via three high-level steps:
 
 ## LLM Inference Benchmarks
 
-GPU inference benchmarks run on `deer` (RTX 3090 24 GB) via KServe / vLLM at `llm.cph02.nicklasfrahm.dev`. Full results in [`benchmark.md`](./benchmark.md).
-
-![LLM Inference Benchmarks](./benchmark.png)
+GPU inference benchmarks run on `deer` (RTX 3090 24 GB) via KServe / vLLM at `llm.cph02.nicklasfrahm.dev`. Full results in [`docs/benchmark.md`](./docs/benchmark.md).

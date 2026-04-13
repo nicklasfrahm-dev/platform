@@ -12,6 +12,13 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
 ```json
 {
   "$schema": "https://charm.land/crush.json",
+  "agent": {
+    "enabled": true
+  },
+  "tools": {
+    "enabled": true,
+    "mode": "confirm"
+  },
   "providers": {
     "vllm": {
       "type": "openai-compat",
@@ -21,8 +28,18 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
         {
           "id": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
           "name": "Gemma 4 26B A4B AWQ 4bit",
+
+          // Maximum context window and default max tokens to allow for long conversations and tool calls.
           "context_window": 131072,
-          "default_max_tokens": 8192,
+          "default_max_tokens": 16384,
+
+          // Cost savings compared to Claude Haiku (per 1M tokens).
+          "cost_per_1m_in": 0.6953,
+          "cost_per_1m_out": 3.6859,
+          "cost_per_1m_in_cached": 0.0695,
+          "cost_per_1m_out_cached": 0.3686,
+
+          // Ensure the thinking template is used for this model to enable auto-tool-choice.
           "extra_body": {
             "chat_template_kwargs": {
               "enable_thinking": true
@@ -31,6 +48,30 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
         }
       ]
     }
+  },
+  "models": {
+    "large": {
+      "model": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
+      "provider": "vllm"
+    },
+    "small": {
+      "model": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
+      "provider": "vllm"
+    }
+  },
+  "recent_models": {
+    "large": [
+      {
+        "model": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
+        "provider": "vllm"
+      }
+    ],
+    "small": [
+      {
+        "model": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
+        "provider": "vllm"
+      }
+    ]
   }
 }
 ```

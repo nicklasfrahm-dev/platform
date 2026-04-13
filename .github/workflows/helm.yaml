@@ -34,7 +34,7 @@ jobs:
           path: main
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Diff charts
         id: diff
@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: Upload diffs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: diff-upload
         if: steps.diff.outputs.changed != '0' && steps.diff.outputs.long == '1'
         with:
@@ -318,10 +318,10 @@ jobs:
           fetch-depth: 2
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Setup ORAS
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@v2
 
       - name: Publish charts
         run: |

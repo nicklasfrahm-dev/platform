@@ -3,3 +3,9 @@ name: traefik
 description: A Helm umbrella chart for Traefik components
 type: application
 version: 1.0.0
+
+dependencies:
+  - name: traefik
+    version: 39.0.7
+    repository: https://helm.traefik.io/traefik
+

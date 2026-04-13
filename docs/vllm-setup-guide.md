@@ -21,7 +21,7 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
         {
           "id": "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit",
           "name": "Gemma 4 26B A4B AWQ 4bit",
-          "context_window": 65535,
+          "context_window": 131072,
           "default_max_tokens": 8192,
           "extra_body": {
             "chat_template_kwargs": {

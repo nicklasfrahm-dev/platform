@@ -1,0 +1,7 @@
+global:
+  domain: example.com
+
+traefik:
+  enabled: true
+
+# You can add other component overrides here

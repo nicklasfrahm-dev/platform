@@ -23,7 +23,7 @@ jobs:
           service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v2
 
       - name: Plan OpenTofu changes
         run: make opentofu-plan
@@ -95,7 +95,7 @@ jobs:
           service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v2
 
       - name: Apply OpenTofu changes
         run: make opentofu-apply

@@ -1,16 +1,6 @@
 name: OpenTofu
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "deploy/opentofu/**"
-      - "modules/**"
-      - ".github/workflows/opentofu.yaml"
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:

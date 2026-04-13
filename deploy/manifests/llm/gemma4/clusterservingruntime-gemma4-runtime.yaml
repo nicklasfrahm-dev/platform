@@ -1,0 +1,62 @@
+# -----------------------------
+# ClusterServingRuntime (vLLM / Gemma 4)
+# Uses the dedicated gemma4 image that ships with transformers>=5.5.0
+# support for the gemma4 architecture (model_type: gemma4).
+# Backpressure middleware: returns HTTP 503 immediately when
+# server_load_metrics >= max_num_seqs, preventing queue build-up.
+# -----------------------------
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: vllm-gemma4-runtime
+spec:
+  supportedModelFormats:
+    - name: huggingface
+      version: "1"
+      autoSelect: false
+  containers:
+    - name: kserve-container
+      image: vllm/vllm-openai:gemma4
+      args:
+        - "--model=${MODEL_ID}"
+        - "--tensor-parallel-size=1"
+        - "--gpu-memory-utilization=0.95"
+        - "--max-model-len=131072"
+        - "--dtype=auto"
+        - "--trust-remote-code"
+        - "--quantization=compressed-tensors"
+        - "--max-num-seqs=4"
+        - "--enable-server-load-tracking"
+        - "--middleware=backpressure.BackpressureMiddleware"
+        - "--middleware=token_pricing.TokenPricingMiddleware"
+        - "--enable-auto-tool-choice"
+        - "--tool-call-parser=gemma4"
+        - "--reasoning-parser=gemma4"
+        - "--chat-template=examples/tool_chat_template_gemma4.jinja"
+      env:
+        - name: MODEL_ID
+          value: ""
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+        - name: PYTHONPATH
+          value: "/opt/workspace/middlewares:${PYTHONPATH:-}"
+      volumeMounts:
+        - name: middleware-volume
+          mountPath: /opt/workspace/middlewares
+          readOnly: true
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+      ports:
+        - containerPort: 8000
+  volumes:
+    - name: middleware-volume
+      configMap:
+        name: vllm-middlewares

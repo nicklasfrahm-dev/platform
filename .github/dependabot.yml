@@ -11,18 +11,6 @@ updates:
       actions:
         patterns:
           - "*"
-  - package-ecosystem: "terraform"
-    directories:
-      - "/modules/*"
-      - "/deploy/opentofu/*"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "fix(deps)"
-    groups:
-      terraform:
-        patterns:
-          - "*"
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
@@ -31,16 +19,5 @@ updates:
       prefix: "fix(deps)"
     groups:
       gomodules:
-        patterns:
-          - "*"
-  - package-ecosystem: "helm"
-    directories:
-      - "/charts/*"
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "fix(deps)"
-    groups:
-      helm:
         patterns:
           - "*"

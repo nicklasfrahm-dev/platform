@@ -2,7 +2,7 @@
 
 Benchmarks run against the OpenAI-compatible vLLM endpoint at `https://llm.cph02.nicklasfrahm.dev`.
 
-![LLM Inference Benchmarks](./benchmark.png)
+![LLM Inference Benchmarks](./img/benchmark.png)
 
 Each benchmark sends **50 chat completion requests** at **2 req/s**, with each prompt requesting up to 200 completion tokens.
 

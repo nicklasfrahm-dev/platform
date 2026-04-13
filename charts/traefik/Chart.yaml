@@ -8,4 +8,5 @@ dependencies:
   - name: traefik
     version: 39.0.7
     repository: https://helm.traefik.io/traefik
+    condition: traefik.enabled
 

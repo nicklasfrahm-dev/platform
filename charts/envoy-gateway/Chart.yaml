@@ -1,0 +1,11 @@
+apiVersion: v2
+name: envoy-gateway
+description: Umbrella chart for Envoy Gateway and its CRDs
+version: 1.0.0
+dependencies:
+  - name: envoy-gateway
+    version: 0.8.0
+    repository: https://gateway.envoyproxy.io/
+  - name: envoy-gateway-crd
+    version: 0.8.0
+    repository: https://gateway.envoyproxy.io/

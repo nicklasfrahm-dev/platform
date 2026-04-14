@@ -27,6 +27,8 @@ spec:
         #   value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
         - name: MODEL_ID
           value: "Intel/gemma-4-31B-it-int4-AutoRound"
+        # - name: MODEL_ID
+        #   value: "Intel/gemma-4-26B-A4B-it-int4-mixed-AutoRound"
         - name: PROMPT_TOKEN_PRICE
           value: "0.6953"
         - name: PROMPT_CACHED_TOKEN_PRICE

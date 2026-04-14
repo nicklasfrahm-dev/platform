@@ -76,34 +76,7 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
 }
 ```
 
-### Example opencode Configuration
-
-If you are using opencode, your configuration in `~/.config/opencode/opencode.json` might look like this:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "vllm": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "vLLM",
-      "options": {
-        "baseURL": "https://llm.cph02.nicklasfrahm.dev/v1"
-      },
-      "models": {
-        "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit": {
-          "name": "Gemma 4 MoE",
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          }
-        }
-      }
-    }
-  }
-}
-```
-
+## Key Parameters
 
 - `type`: Set this to `"openai-compat"` as vLLM implements the OpenAI API specification.
 - `base_url`: The full URL to your vLLM `/v1` endpoint.

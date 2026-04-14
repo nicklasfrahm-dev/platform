@@ -26,7 +26,7 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
       "api_key": "dummy",
       "models": [
         {
-          "id": "gemma-4-26b-a3b",
+          "id": "gemma-4-26b-a4b-it",
           "name": "Gemma 4 MoE",
 
           // Maximum context window and default max tokens to allow for long conversations and tool calls.
@@ -51,24 +51,24 @@ To configure Crush to use your private vLLM instance, you need to edit your `cru
   },
   "models": {
     "large": {
-      "model": "gemma-4-26b-a3b",
+      "model": "gemma-4-26b-a4b-it",
       "provider": "vllm"
     },
     "small": {
-      "model": "gemma-4-26b-a3b",
+      "model": "gemma-4-26b-a4b-it",
       "provider": "vllm"
     }
   },
   "recent_models": {
     "large": [
       {
-        "model": "gemma-4-26b-a3b",
+        "model": "gemma-4-26b-a4b-it",
         "provider": "vllm"
       }
     ],
     "small": [
       {
-        "model": "gemma-4-26b-a3b",
+        "model": "gemma-4-26b-a4b-it",
         "provider": "vllm"
       }
     ]
@@ -91,7 +91,7 @@ If you are using opencode, your configuration in `~/.config/opencode/opencode.js
         "baseURL": "https://llm.cph02.nicklasfrahm.dev/v1"
       },
       "models": {
-        "gemma-4-26b-a3b": {
+        "gemma-4-26b-a4b-it": {
           "name": "Gemma 4 MoE",
           "limit": {
             "context": 131072,

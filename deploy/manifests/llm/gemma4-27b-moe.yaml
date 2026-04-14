@@ -1,0 +1,147 @@
+# -----------------------------
+# ClusterServingRuntime (vLLM / Gemma 4)
+# Uses the dedicated gemma4 image that ships with transformers>=5.5.0
+# support for the gemma4 architecture (model_type: gemma4).
+# Backpressure middleware: returns HTTP 503 immediately when
+# server_load_metrics >= max_num_seqs, preventing queue build-up.
+# -----------------------------
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: vllm-gemma4-runtime
+spec:
+  supportedModelFormats:
+    - name: huggingface
+      version: "1"
+      autoSelect: false
+  containers:
+    - name: kserve-container
+      image: vllm/vllm-openai:gemma4
+      # Write a tiny backpressure middleware to /tmp, then start vLLM with it.
+      # The middleware reads server_load_metrics (enabled via
+      # --enable-server-load-tracking) and returns 503 instantly when the
+      # server is already handling max_num_seqs requests, rather than queuing
+      # the new request indefinitely.
+      command:
+        - /bin/sh
+        - -c
+      args:
+        - |
+          cat > /tmp/backpressure.py << 'PYEOF'
+          from starlette.middleware.base import BaseHTTPMiddleware
+          from starlette.responses import JSONResponse
+
+          MAX_CONCURRENT = 4  # mirrors --max-num-seqs
+
+          class BackpressureMiddleware(BaseHTTPMiddleware):
+              async def dispatch(self, request, call_next):
+                  if (
+                      "/v1/" in str(request.url)
+                      and request.method not in ("GET", "OPTIONS", "HEAD")
+                  ):
+                      load = getattr(
+                          request.app.state, "server_load_metrics", 0
+                      )
+                      if load >= MAX_CONCURRENT:
+                          return JSONResponse(
+                              {
+                                  "error": {
+                                      "message": "Server overloaded — try again later.",
+                                      "type": "server_error",
+                                      "code": 503,
+                                  }
+                              },
+                              status_code=503,
+                          )
+                  return await call_next(request)
+          PYEOF
+          export PYTHONPATH=/tmp:${PYTHONPATH:-}
+          exec python3 -m vllm.entrypoints.openai.api_server \
+            --model="${MODEL_ID}" \
+            --tensor-parallel-size=1 \
+            --gpu-memory-utilization=0.95 \
+            --max-model-len=131072 \
+            --dtype=auto \
+            --trust-remote-code \
+            --quantization=compressed-tensors \
+            --max-num-seqs=4 \
+            --enable-server-load-tracking \
+            --middleware=backpressure.BackpressureMiddleware \
+            --enable-auto-tool-choice \
+            --tool-call-parser=gemma4 \
+            --reasoning-parser=gemma4 \
+            --chat-template=examples/tool_chat_template_gemma4.jinja
+      env:
+        - name: MODEL_ID
+          value: ""
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+      ports:
+        - containerPort: 8000
+
+---
+# -----------------------------
+# InferenceService (Gemma 4 27B MoE)
+# -----------------------------
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: gemma4-moe
+spec:
+  predictor:
+    deploymentStrategy:
+      type: Recreate
+    runtimeClassName: nvidia
+    nodeSelector:
+      feature.node.kubernetes.io/pci-10de.present: "true"
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+    model:
+      modelFormat:
+        name: huggingface
+      runtime: vllm-gemma4-runtime
+      env:
+        - name: MODEL_ID
+          value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+
+---
+# -----------------------------
+# HTTPRoute (Gateway API) — points to Gemma 4
+# -----------------------------
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kserve-route
+spec:
+  hostnames:
+    - llm.cph02.nicklasfrahm.dev
+  parentRefs:
+    - name: shared-http
+      namespace: platform
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gemma4-moe-predictor
+          port: 80

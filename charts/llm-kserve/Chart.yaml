@@ -1,4 +1,0 @@
-apiVersion: v2
-name: llm-kserve
-description: A Helm chart to deploy KServe ClusterServingRuntime and InferenceService for LLMs using vLLM.
-type: application

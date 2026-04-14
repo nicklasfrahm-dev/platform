@@ -20,6 +20,8 @@ spec:
       modelFormat:
         name: huggingface
       runtime: vllm-gemma4-runtime
+      args:
+        - "--served-model-name=gemma-4-26b-a4b-it"
       env:
         - name: MODEL_ID
           value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"

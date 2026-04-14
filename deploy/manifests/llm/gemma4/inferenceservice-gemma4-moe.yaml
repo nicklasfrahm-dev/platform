@@ -23,8 +23,10 @@ spec:
       args:
         - "--served-model-name=gemma4-26b-a4b-it"
       env:
+        # - name: MODEL_ID
+        #   value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
         - name: MODEL_ID
-          value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
+          value: "Intel/gemma-4-31B-it-int4-AutoRound"
         - name: PROMPT_TOKEN_PRICE
           value: "0.6953"
         - name: PROMPT_CACHED_TOKEN_PRICE

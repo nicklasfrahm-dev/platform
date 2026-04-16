@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pr-title:
+    name: Validate PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Check conventional commit format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Dynamically discover scopes from cmd/ and pkg/
+          mapfile -t scopes < <(
+            printf 'ci\ndeps\n'
+            find cmd -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
+            grep -rh --include='*.go' '^package ' pkg/ | awk '{print $2}' | grep -v '_test$' | sort -u
+          )
+          scope_pattern=$(IFS='|'; echo "${scopes[*]}")
+          pattern="^(feat|fix|chore)\((${scope_pattern})\): [a-z].+$"
+          if echo "$PR_TITLE" | grep -qE "$pattern"; then
+            echo "PR title is valid: $PR_TITLE"
+          else
+            echo "Invalid PR title: $PR_TITLE"
+            echo "Expected format: type(scope): message"
+            echo "Valid types:  feat, fix, chore"
+            echo "Valid scopes: ${scopes[*]}"
+            exit 1
+          fi
+
+  lint:
+    name: Lint code
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run code generators
+        run: go generate ./...
+
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: latest
+          install-mode: goinstall
+
+  coverage:
+    name: Report coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run code generators
+        run: go generate ./...
+
+      - name: Report coverage
+        uses: gwatts/go-coverage-action@v2.0.0
+        with:
+          coverage-threshold: 0
+          # Attribute cross-package coverage so integration tests in cmd/wallet
+          # count toward the domain packages they exercise.
+          cover-pkg: ./...

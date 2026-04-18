@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const tabPadding = 4
+
 // Event represents a single event in the timeline with a name, timestamp, duration, and extra information.
 type Event struct {
 	Name      string
@@ -24,14 +26,16 @@ func (e Event) Log(logger *zap.Logger, fields ...zap.Field) {
 
 // Timeline represents a sequence of steps in a process, each with a timestamp and duration.
 type Timeline struct {
-	sync.Mutex
+	mu    sync.Mutex
 	Steps []Event
 }
 
+// NewTimeline creates a new empty Timeline.
 func NewTimeline() *Timeline {
 	return &Timeline{}
 }
 
+// Add appends a new event to the timeline and returns it.
 func (t *Timeline) Add(now time.Time, group string, name string) Event {
 	event := Event{
 		Name:      name,
@@ -39,17 +43,18 @@ func (t *Timeline) Add(now time.Time, group string, name string) Event {
 		Group:     group,
 	}
 
-	t.Lock()
-	defer t.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	t.Steps = append(t.Steps, event)
 
 	return event
 }
 
+// AddEvents appends multiple events to the timeline, stamping each with the given time.
 func (t *Timeline) AddEvents(now time.Time, events ...Event) {
-	t.Lock()
-	defer t.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	for _, event := range events {
 		event.Timestamp = now
@@ -57,38 +62,40 @@ func (t *Timeline) AddEvents(now time.Time, events ...Event) {
 	}
 }
 
+// Print outputs the timeline to stdout in a tabular format.
 func (t *Timeline) Print() {
 	if len(t.Steps) == 0 {
-		fmt.Println("No steps recorded")
+		_, _ = fmt.Fprintf(os.Stdout, "No steps recorded\n")
 
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, tabPadding, ' ', 0)
 
-	fmt.Fprintf(w, "GROUP\tSTEP\tRELATIVE (ms)\tΔ DURATION (ms)\tTIMESTAMP\n")
+	_, _ = fmt.Fprintf(writer, "GROUP\tSTEP\tRELATIVE (ms)\tΔ DURATION (ms)\tTIMESTAMP\n")
 
 	var previous time.Time
+
 	var start time.Time
 
-	for i, s := range t.Steps {
+	for i, step := range t.Steps {
 		if i == 0 {
-			previous = s.Timestamp
-			start = s.Timestamp
+			previous = step.Timestamp
+			start = step.Timestamp
 		}
 
-		duration := s.Timestamp.Sub(previous)
-		relative := s.Timestamp.Sub(start)
-		previous = s.Timestamp
+		duration := step.Timestamp.Sub(previous)
+		relative := step.Timestamp.Sub(start)
+		previous = step.Timestamp
 
-		fmt.Fprintf(w, "%s\t%s\t%15d\t%15d\t%s\n",
-			s.Group,
-			s.Name,
+		_, _ = fmt.Fprintf(writer, "%s\t%s\t%15d\t%15d\t%s\n",
+			step.Group,
+			step.Name,
 			int(relative.Milliseconds()),
 			int(duration.Milliseconds()),
-			s.Timestamp.Format(time.RFC3339Nano),
+			step.Timestamp.Format(time.RFC3339Nano),
 		)
 	}
 
-	w.Flush()
+	_ = writer.Flush()
 }

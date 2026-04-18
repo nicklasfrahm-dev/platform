@@ -26,7 +26,8 @@ func (j *Job) AddStep(step Step) {
 // If any step returns an error, execution stops and the error is returned.
 func (j *Job) Execute() error {
 	for _, step := range j.steps {
-		if err := step(); err != nil {
+		err := step()
+		if err != nil {
 			return fmt.Errorf("failed to execute job: %w", err)
 		}
 	}

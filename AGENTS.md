@@ -104,6 +104,21 @@ When calling a tool, emit it as a clean JSON block with no extra prose inside th
 
 ---
 
+## LLM DEPLOYMENT (Gemma 4 / vLLM)
+
+### Gemma 4 architecture notes
+
+- **5:1 local/global attention ratio**: only ~10 layers need a full-length KV cache; the other ~52 use a 4096-token sliding window. This makes 256K context affordable on a single RTX 3090 (24 GB) with `--max-num-seqs=1`.
+- **FLASH_ATTN is incompatible** with Gemma 4's head size — `ValueError: head_size not supported`. Do not set `--attention-backend=FLASH_ATTN`; let vLLM auto-select (falls back to TRITON_ATTN).
+- **Chat template**: do not hardcode `--chat-template=examples/tool_chat_template_gemma4.jinja`. The bundled vLLM template is stale and causes tool-call loops. Omit the flag so vLLM uses the model's own `chat_template.jinja` from the HuggingFace cache.
+- **HF cache invalidation**: after changing the model id or when tool-call behaviour regresses, clear the cache on the node so the updated tokenizer files are pulled: `rm -rf ~/.cache/huggingface/hub/models--cyankiwi--gemma-4-26B-A4B-it-AWQ-4bit`.
+
+### Backpressure middleware
+
+vLLM has a native scheduler queue — do not hold connections in middleware. The backpressure middleware should only 503 when `server_load_metrics >= MAX_CONCURRENT + MAX_QUEUE`; vLLM handles the actual waiting. `server_load_metrics` (populated by `--enable-server-load-tracking`) counts running + waiting requests.
+
+---
+
 ## GO SPECIFICS
 
 - **Idiomatic Go**: Follow table-driven tests, explicit error wrapping, and interface-first design.

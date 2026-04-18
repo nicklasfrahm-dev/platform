@@ -1,47 +1,22 @@
+version: "2"
+
 run:
-  timeout: 5m
-  allow-parallel-runners: true
+  timeout: 10m
 
-issues:
-  # don't skip warning about doc comments
-  # don't exclude the default set of lint
-  exclude-use-default: false
-  # restore some of the defaults
-  # (fill in the rest as needed)
-  exclude-rules:
-    - path: "api/*"
-      linters:
-        - lll
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
 linters:
-  disable-all: true
-  enable:
-    - dupl
-    - errcheck
-    - exportloopref
-    - ginkgolinter
-    - goconst
-    - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
-    - govet
-    - ineffassign
-    - lll
-    - misspell
-    - nakedret
-    - prealloc
-    - revive
-    - staticcheck
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
+  default: all
+  disable:
+    # dependency allowlist — configure when policy is set
+    - depguard
+    # requires zero-value fields to be explicit — too verbose for stdlib types
+    - exhaustruct
+    # deprecated; replaced by wsl_v5
+    - wsl
 
-linters-settings:
-  revive:
-    rules:
-      - name: comment-spacings
+  settings:
+    testpackage:
+      allow-packages:
+        - main
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

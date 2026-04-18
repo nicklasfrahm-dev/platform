@@ -53,7 +53,11 @@ jobs:
       - name: List services
         id: list
         run: |
-          services=$(find cmd -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort | jq -R . | jq -sc .)
+          services=$(
+            find cmd -mindepth 1 -maxdepth 1 -type d | xargs -I{} basename {} | sort | while read -r svc; do
+              [ -f "cmd/${svc}/Containerfile" ] || [ -f "Containerfile" ] && echo "$svc"
+            done | jq -R . | jq -sc .
+          )
           echo "matrix={\"service\":$services}" >> "$GITHUB_OUTPUT"
 
   publish:

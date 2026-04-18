@@ -15,15 +15,17 @@ type vllmSnapshot struct {
 }
 
 func scrapeMetrics(url string) (vllmSnapshot, error) {
-	resp, err := http.Get(url) //nolint:noctx
+	resp, err := http.Get(url) //nolint:gosec,noctx
 	if err != nil {
 		return vllmSnapshot{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return vllmSnapshot{}, err
 	}
+
 	return vllmSnapshot{
 		running: parseGauge(body, "vllm:num_requests_running"),
 		waiting: parseGauge(body, "vllm:num_requests_waiting"),
@@ -39,7 +41,7 @@ func parseGauge(body []byte, name string) float64 {
 			continue
 		}
 		parts := strings.Fields(line)
-		if len(parts) < 2 {
+		if len(parts) < minPrometheusFields {
 			continue
 		}
 		v, err := strconv.ParseFloat(parts[len(parts)-1], 64)
@@ -47,5 +49,6 @@ func parseGauge(body []byte, name string) float64 {
 			return v
 		}
 	}
+
 	return 0
 }

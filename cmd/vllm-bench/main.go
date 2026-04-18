@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -17,52 +18,95 @@ import (
 )
 
 var (
-	flagDuration     = flag.Duration("duration", 2*time.Minute, "benchmark duration (standard mode)")
-	flagWorkers      = flag.Int("workers", 1, "concurrent workers; each sends requests sequentially")
-	flagNamespace    = flag.String("namespace", "llm", "kubernetes namespace")
-	flagSelector     = flag.String("selector", "serving.kserve.io/inferenceservice=gemma4-moe", "pod label selector")
-	flagModel        = flag.String("model", "gemma4-26b-a4b-it", "served model name")
-	flagMaxTokens    = flag.Int("max-tokens", 512, "max completion tokens per request")
-	flagMaxQueue     = flag.Int("max-queue", 3, "pause worker when vLLM waiting queue reaches this depth")
-	flagPort         = flag.Int("port", 18000, "local port for kubectl port-forward")
-	flagPrompt       = flag.String("prompt", "Explain in detail how transformer attention mechanisms work in large language models.", "prompt for standard mode")
-	flagSweep        = flag.Bool("sweep", false, "sweep context sizes and plot results")
-	flagSweepSizes   = flag.String("sweep-sizes", "1024,4096,16384,32768,65536,131072", "comma-separated input token targets for sweep mode")
-	flagSweepReqs    = flag.Int("sweep-requests", 3, "requests per context size in sweep mode (averaged)")
-	flagSweepOutToks = flag.Int("sweep-out-tokens", 64, "output tokens per request in sweep mode")
+	errNoPod              = errors.New("no running pod found")
+	errPortForwardTimeout = errors.New("port-forward did not become ready within 30s")
 )
 
-func main() {
+const (
+	defaultSelector = "serving.kserve.io/inferenceservice=gemma4-moe"
+	defaultPrompt   = "Explain in detail how transformer attention mechanisms work in large language models."
+	defaultSweepSizes = "1024,4096,16384,32768,65536,131072"
+)
+
+type config struct {
+	duration     time.Duration
+	workers      int
+	namespace    string
+	selector     string
+	model        string
+	maxTokens    int
+	maxQueue     int
+	port         int
+	prompt       string
+	sweep        bool
+	sweepSizes   string
+	sweepReqs    int
+	sweepOutToks int
+	client       *http.Client
+}
+
+func parseFlags() config {
+	var cfg config
+	flag.DurationVar(&cfg.duration, "duration", defaultDuration, "benchmark duration (standard mode)")
+	flag.IntVar(&cfg.workers, "workers", 1, "concurrent workers; each sends requests sequentially")
+	flag.StringVar(&cfg.namespace, "namespace", "llm", "kubernetes namespace")
+	flag.StringVar(&cfg.selector, "selector", defaultSelector, "pod label selector")
+	flag.StringVar(&cfg.model, "model", "gemma4-26b-a4b-it", "served model name")
+	flag.IntVar(&cfg.maxTokens, "max-tokens", defaultMaxTokens, "max completion tokens per request")
+	flag.IntVar(&cfg.maxQueue, "max-queue", defaultMaxQueue, "pause worker when vLLM waiting queue reaches this depth")
+	flag.IntVar(&cfg.port, "port", defaultPort, "local port for kubectl port-forward")
+	flag.StringVar(&cfg.prompt, "prompt", defaultPrompt, "prompt for standard mode")
+	flag.BoolVar(&cfg.sweep, "sweep", false, "sweep context sizes and plot results")
+	flag.StringVar(&cfg.sweepSizes, "sweep-sizes", defaultSweepSizes, "comma-separated input token targets for sweep mode")
+	flag.IntVar(&cfg.sweepReqs, "sweep-requests", defaultSweepReqs, "requests per context size in sweep mode (averaged)")
+	flag.IntVar(&cfg.sweepOutToks, "sweep-out-tokens", defaultSweepOutToks, "output tokens per request in sweep mode")
 	flag.Parse()
+	cfg.client = &http.Client{Timeout: clientTimeout}
+	return cfg
+}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-
-	pod, err := findPod(ctx, *flagNamespace, *flagSelector)
-	if err != nil {
-		log.Fatalf("find pod: %v", err)
-	}
-	fmt.Printf("pod: %s\n", pod)
-
-	pfCtx, pfCancel := context.WithCancel(ctx)
-	defer pfCancel()
-
-	if err := startPortForward(pfCtx, *flagNamespace, pod, *flagPort); err != nil {
-		log.Fatalf("port-forward: %v", err)
-	}
-
-	baseURL := fmt.Sprintf("http://localhost:%d", *flagPort)
-
-	if *flagSweep {
-		sizes := parseSweepSizes(*flagSweepSizes)
-		runSweep(ctx, baseURL, sizes)
-	} else {
-		runBench(ctx, baseURL)
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
 	}
 }
 
+func run() error {
+	cfg := parseFlags()
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	pod, err := findPod(ctx, cfg.namespace, cfg.selector)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("find pod: %w", err)
+	}
+	_, _ = fmt.Fprintf(os.Stdout, "pod: %s\n", pod)
+
+	pfCtx, pfCancel := context.WithCancel(ctx)
+
+	if err := startPortForward(pfCtx, cfg.namespace, pod, cfg.port); err != nil {
+		pfCancel()
+		cancel()
+		return fmt.Errorf("port-forward: %w", err)
+	}
+
+	defer pfCancel()
+	defer cancel()
+
+	baseURL := fmt.Sprintf("http://localhost:%d", cfg.port)
+
+	if cfg.sweep {
+		sizes := parseSweepSizes(cfg.sweepSizes)
+		runSweep(ctx, baseURL, cfg, sizes)
+	} else {
+		runBench(ctx, baseURL, cfg)
+	}
+	return nil
+}
+
 func findPod(ctx context.Context, ns, selector string) (string, error) {
-	out, err := exec.CommandContext(ctx,
+	out, err := exec.CommandContext(ctx, //nolint:gosec
 		"kubectl", "get", "pod",
 		"-n", ns, "-l", selector,
 		"--field-selector=status.phase=Running",
@@ -73,13 +117,13 @@ func findPod(ctx context.Context, ns, selector string) (string, error) {
 	}
 	name := strings.TrimSpace(string(out))
 	if name == "" {
-		return "", fmt.Errorf("no running pod for selector %q in namespace %q", selector, ns)
+		return "", fmt.Errorf("selector %q in namespace %q: %w", selector, ns, errNoPod)
 	}
 	return name, nil
 }
 
 func startPortForward(ctx context.Context, ns, pod string, localPort int) error {
-	cmd := exec.CommandContext(ctx,
+	cmd := exec.CommandContext(ctx, //nolint:gosec
 		"kubectl", "port-forward",
 		"-n", ns, "pod/"+pod,
 		fmt.Sprintf("%d:8000", localPort),
@@ -90,19 +134,19 @@ func startPortForward(ctx context.Context, ns, pod string, localPort int) error 
 	}
 
 	url := fmt.Sprintf("http://localhost:%d/metrics", localPort)
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(pfTimeout)
 	for time.Now().Before(deadline) {
-		resp, err := http.Get(url) //nolint:noctx
+		resp, err := http.Get(url) //nolint:gosec,noctx
 		if err == nil {
-			resp.Body.Close()
-			fmt.Printf("port-forward ready on localhost:%d\n\n", localPort)
+			_ = resp.Body.Close()
+			_, _ = fmt.Fprintf(os.Stdout, "port-forward ready on localhost:%d\n\n", localPort)
 			return nil
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(backoffDuration):
 		}
 	}
-	return fmt.Errorf("port-forward did not become ready within 30s")
+	return errPortForwardTimeout
 }

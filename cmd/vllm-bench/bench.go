@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,25 +18,24 @@ type stats struct {
 	latencyNs atomic.Int64
 }
 
-func runBench(ctx context.Context, baseURL string) {
-	benchCtx, cancel := context.WithTimeout(ctx, *flagDuration)
+func runBench(ctx context.Context, baseURL string, cfg config) {
+	benchCtx, cancel := context.WithTimeout(ctx, cfg.duration)
 	defer cancel()
 
 	st := &stats{}
 	var wg sync.WaitGroup
-	for i := range *flagWorkers {
+	for i := range cfg.workers {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			benchWorker(benchCtx, id, baseURL, st)
+			benchWorker(benchCtx, id, baseURL, cfg, st)
 		}(i)
 	}
 
 	start := time.Now()
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
-	// throughput samples for the end chart
 	var throughputSamples []float64
 	var lastGenTok int64
 
@@ -49,48 +49,50 @@ func runBench(ctx context.Context, baseURL string) {
 			errs := st.errors.Load()
 			deltaGen := gen - lastGenTok
 			lastGenTok = gen
-			tokPerSec := float64(deltaGen) / 5
+			tokPerSec := float64(deltaGen) / tickInterval.Seconds()
 			throughputSamples = append(throughputSamples, tokPerSec)
-			avgLat := avgLatency(st)
-			fmt.Printf("[%5s] requests=%-4d errors=%-3d gen_tok/s=%6.1f req/s=%4.2f avg_lat=%s running=%.0f waiting=%.0f\n",
-				elapsed.Round(time.Second),
-				reqs, errs,
-				tokPerSec,
-				float64(reqs)/elapsed.Seconds(),
-				avgLat.Round(time.Millisecond),
-				snap.running, snap.waiting,
-			)
+			printTickLine(elapsed, reqs, errs, tokPerSec, float64(reqs)/elapsed.Seconds(), snap)
 
 		case <-benchCtx.Done():
 			wg.Wait()
 			printBenchSummary(start, st, throughputSamples)
+
 			return
 		}
 	}
 }
 
-func benchWorker(ctx context.Context, id int, baseURL string, st *stats) {
+func printTickLine(elapsed time.Duration, reqs, errs int64, tokPerSec, reqPerSec float64, snap vllmSnapshot) {
+	_, _ = fmt.Fprintf(os.Stdout,
+		"[%5s] requests=%-4d errors=%-3d gen_tok/s=%6.1f req/s=%4.2f avg_lat=? running=%.0f waiting=%.0f\n",
+		elapsed.Round(time.Second), reqs, errs, tokPerSec, reqPerSec, snap.running, snap.waiting,
+	)
+}
+
+func benchWorker(ctx context.Context, id int, baseURL string, cfg config, st *stats) {
 	for {
 		if ctx.Err() != nil {
 			return
 		}
 
 		snap, err := scrapeMetrics(baseURL + "/metrics")
-		if err == nil && snap.waiting >= float64(*flagMaxQueue) {
+		if err == nil && snap.waiting >= float64(cfg.maxQueue) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(500 * time.Millisecond):
+			case <-time.After(backoffDuration):
 			}
+
 			continue
 		}
 
-		result, err := sendChatCompletion(ctx, baseURL, *flagModel, *flagPrompt, *flagMaxTokens)
+		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, cfg.prompt, cfg.maxTokens)
 		if err != nil {
 			if ctx.Err() == nil {
 				log.Printf("worker %d: %v", id, err)
 				st.errors.Add(1)
 			}
+
 			continue
 		}
 		st.requests.Add(1)
@@ -107,19 +109,18 @@ func printBenchSummary(start time.Time, st *stats, samples []float64) {
 	prompt := st.promptTok.Load()
 	errs := st.errors.Load()
 
-	fmt.Printf("\n─── summary ─────────────────────────────────────\n")
-	fmt.Printf("duration:       %s\n", elapsed.Round(time.Millisecond))
-	fmt.Printf("requests:       %d  (errors: %d)\n", reqs, errs)
-	fmt.Printf("prompt tokens:  %d\n", prompt)
-	fmt.Printf("gen tokens:     %d\n", gen)
-	fmt.Printf("gen tok/s:      %.2f\n", float64(gen)/elapsed.Seconds())
-	fmt.Printf("avg latency:    %s\n", avgLatency(st).Round(time.Millisecond))
+	_, _ = fmt.Fprintf(os.Stdout, "\n─── summary ─────────────────────────────────────\n")
+	_, _ = fmt.Fprintf(os.Stdout, "duration:       %s\n", elapsed.Round(time.Millisecond))
+	_, _ = fmt.Fprintf(os.Stdout, "requests:       %d  (errors: %d)\n", reqs, errs)
+	_, _ = fmt.Fprintf(os.Stdout, "prompt tokens:  %d\n", prompt)
+	_, _ = fmt.Fprintf(os.Stdout, "gen tokens:     %d\n", gen)
+	_, _ = fmt.Fprintf(os.Stdout, "gen tok/s:      %.2f\n", float64(gen)/elapsed.Seconds())
+	_, _ = fmt.Fprintf(os.Stdout, "avg latency:    %s\n", avgLatency(st).Round(time.Millisecond))
 
-	if len(samples) >= 2 {
-		// x-axis: one label every ~10 samples or at most 10 labels
-		labels := timeLabels(len(samples), 5*time.Second)
-		fmt.Printf("\n")
-		fmt.Println(lineChart("Generation throughput (tok/s) over time", labels, samples, "tok/s"))
+	if len(samples) >= minChartSamples {
+		labels := timeLabels(len(samples), tickInterval)
+		_, _ = fmt.Fprintln(os.Stdout)
+		_, _ = fmt.Fprintln(os.Stdout, lineChart("Generation throughput (tok/s) over time", labels, samples, "tok/s"))
 	}
 }
 
@@ -128,17 +129,19 @@ func avgLatency(st *stats) time.Duration {
 	if reqs == 0 {
 		return 0
 	}
+
 	return time.Duration(st.latencyNs.Load() / reqs)
 }
 
 // timeLabels builds evenly spaced x-axis labels for a chart of n samples at interval d.
 func timeLabels(n int, interval time.Duration) []string {
-	step := max(1, n/8)
+	step := max(1, n/xAxisLabelDiv)
 	labels := make([]string, n)
 	for i := range n {
 		if i%step == 0 {
 			labels[i] = (time.Duration(i) * interval).String()
 		}
 	}
+
 	return labels
 }

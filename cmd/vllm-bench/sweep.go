@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -18,18 +19,19 @@ type sweepPoint struct {
 
 func parseSweepSizes(s string) []int {
 	var sizes []int
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		v, err := strconv.Atoi(strings.TrimSpace(part))
 		if err == nil && v > 0 {
 			sizes = append(sizes, v)
 		}
 	}
+
 	return sizes
 }
 
-func runSweep(ctx context.Context, baseURL string, sizes []int) {
-	fmt.Printf("sweep: %d context sizes, %d requests each, %d output tokens\n\n",
-		len(sizes), *flagSweepReqs, *flagSweepOutToks)
+func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
+	_, _ = fmt.Fprintf(os.Stdout, "sweep: %d context sizes, %d requests each, %d output tokens\n\n",
+		len(sizes), cfg.sweepReqs, cfg.sweepOutToks)
 
 	results := make([]sweepPoint, 0, len(sizes))
 
@@ -37,67 +39,81 @@ func runSweep(ctx context.Context, baseURL string, sizes []int) {
 		if ctx.Err() != nil {
 			break
 		}
-		fmt.Printf("context ~%dk tokens ... ", target/1024)
-		prompt := paddedPrompt(target)
+		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
 
-		var totalLat time.Duration
-		var totalPrompt, totalCompletion int
-		var succeeded int
+		pt, ok := measureSweepPoint(ctx, baseURL, cfg, target)
+		if !ok {
+			_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
 
-		for i := range *flagSweepReqs {
-			if ctx.Err() != nil {
-				break
-			}
-			// wait for queue to clear before each sweep request
-			for {
-				snap, err := scrapeMetrics(baseURL + "/metrics")
-				if err != nil || snap.waiting < float64(*flagMaxQueue) {
-					break
-				}
-				select {
-				case <-ctx.Done():
-					break
-				case <-time.After(500 * time.Millisecond):
-				}
-			}
-
-			result, err := sendChatCompletion(ctx, baseURL, *flagModel, prompt, *flagSweepOutToks)
-			if err != nil {
-				log.Printf("request %d for %d tokens: %v", i+1, target, err)
-				continue
-			}
-			totalLat += result.latency
-			totalPrompt += result.promptTokens
-			totalCompletion += result.completionTokens
-			succeeded++
-		}
-
-		if succeeded == 0 {
-			fmt.Println("all requests failed, skipping")
 			continue
 		}
 
-		pt := sweepPoint{
-			targetTokens:     target,
-			promptTokens:     totalPrompt / succeeded,
-			completionTokens: totalCompletion / succeeded,
-			latency:          totalLat / time.Duration(succeeded),
-		}
 		results = append(results, pt)
-		tokPerSec := float64(pt.completionTokens) / pt.latency.Seconds()
-		fmt.Printf("prompt=%d  lat=%s  tok/s=%.1f\n",
+		_, _ = fmt.Fprintf(os.Stdout, "prompt=%d  lat=%s  tok/s=%.1f\n",
 			pt.promptTokens,
 			pt.latency.Round(time.Millisecond),
-			tokPerSec,
+			float64(pt.completionTokens)/pt.latency.Seconds(),
 		)
 	}
 
-	if len(results) < 2 {
-		fmt.Println("not enough data points for charts")
+	if len(results) < minChartSamples {
+		_, _ = fmt.Fprintln(os.Stdout, "not enough data points for charts")
+
 		return
 	}
 
 	printSweepCharts(results)
+}
+
+func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target int) (sweepPoint, bool) {
+	prompt := paddedPrompt(target)
+	var totalLat time.Duration
+	var totalPrompt, totalCompletion, succeeded int
+
+	for i := range cfg.sweepReqs {
+		if ctx.Err() != nil {
+			break
+		}
+		waitForCapacity(ctx, baseURL, cfg)
+
+		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, prompt, cfg.sweepOutToks)
+		if err != nil {
+			log.Printf("request %d for %d tokens: %v", i+1, target, err)
+
+			continue
+		}
+		totalLat += result.latency
+		totalPrompt += result.promptTokens
+		totalCompletion += result.completionTokens
+		succeeded++
+	}
+
+	if succeeded == 0 {
+		return sweepPoint{}, false
+	}
+
+	return sweepPoint{
+		targetTokens:     target,
+		promptTokens:     totalPrompt / succeeded,
+		completionTokens: totalCompletion / succeeded,
+		latency:          totalLat / time.Duration(succeeded),
+	}, true
+}
+
+// waitForCapacity blocks until vLLM's waiting queue has room or the context is cancelled.
+func waitForCapacity(ctx context.Context, baseURL string, cfg config) {
+waitLoop:
+	for {
+		snap, err := scrapeMetrics(baseURL + "/metrics")
+		if err != nil || snap.waiting < float64(cfg.maxQueue) {
+			break waitLoop
+		}
+		select {
+		case <-ctx.Done():
+			break waitLoop
+		case <-time.After(backoffDuration):
+		}
+	}
 }
 
 func printSweepCharts(results []sweepPoint) {
@@ -106,7 +122,7 @@ func printSweepCharts(results []sweepPoint) {
 	throughputs := make([]float64, len(results))
 
 	for i, r := range results {
-		k := r.promptTokens / 1024
+		k := r.promptTokens / tokensPerK
 		if k == 0 {
 			labels[i] = fmt.Sprintf("%dt", r.promptTokens)
 		} else {
@@ -116,26 +132,27 @@ func printSweepCharts(results []sweepPoint) {
 		throughputs[i] = float64(r.completionTokens) / r.latency.Seconds()
 	}
 
-	fmt.Println()
-	fmt.Println(lineChart("Context window vs latency (s)", labels, latencies, "s"))
-	fmt.Println()
-	fmt.Println(lineChart("Context window vs throughput (tok/s)", labels, throughputs, "tok/s"))
+	_, _ = fmt.Fprintln(os.Stdout)
+	_, _ = fmt.Fprintln(os.Stdout, lineChart("Context window vs latency (s)", labels, latencies, "s"))
+	_, _ = fmt.Fprintln(os.Stdout)
+	_, _ = fmt.Fprintln(os.Stdout, lineChart("Context window vs throughput (tok/s)", labels, throughputs, "tok/s"))
 }
 
 // paddedPrompt returns a prompt whose token count is approximately targetTokens.
-// It fills a system-like preamble with repeated text and appends a short question.
 // Approximation: 1 token ≈ 3.5 characters for English prose.
 func paddedPrompt(targetTokens int) string {
 	question := "Summarise the above in one sentence."
-	charsNeeded := int(float64(targetTokens)*3.5) - len(question) - 20
+	charsNeeded := int(float64(targetTokens)*charsPerToken) - len(question) - paddingOverhead
 	if charsNeeded < 0 {
 		return question
 	}
-
-	seed := "The transformer architecture relies on self-attention mechanisms that allow each token in a sequence to attend to every other token, enabling the model to capture long-range dependencies efficiently. "
+	seed := "The transformer architecture relies on self-attention mechanisms " +
+		"that allow each token in a sequence to attend to every other token, " +
+		"enabling the model to capture long-range dependencies efficiently. "
 	var sb strings.Builder
 	for sb.Len() < charsNeeded {
 		sb.WriteString(seed)
 	}
+
 	return sb.String()[:charsNeeded] + "\n\n" + question
 }

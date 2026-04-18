@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,13 +18,14 @@ type vllmSnapshot struct {
 func scrapeMetrics(url string) (vllmSnapshot, error) {
 	resp, err := http.Get(url) //nolint:gosec,noctx
 	if err != nil {
-		return vllmSnapshot{}, err
+		return vllmSnapshot{}, fmt.Errorf("http get: %w", err)
 	}
+
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return vllmSnapshot{}, err
+		return vllmSnapshot{}, fmt.Errorf("read response body: %w", err)
 	}
 
 	return vllmSnapshot{
@@ -40,10 +42,12 @@ func parseGauge(body []byte, name string) float64 {
 		if strings.HasPrefix(line, "#") || !strings.HasPrefix(line, name) {
 			continue
 		}
+
 		parts := strings.Fields(line)
 		if len(parts) < minPrometheusFields {
 			continue
 		}
+
 		v, err := strconv.ParseFloat(parts[len(parts)-1], 64)
 		if err == nil {
 			return v

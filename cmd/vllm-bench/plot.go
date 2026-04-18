@@ -12,7 +12,10 @@ func lineChart(title string, xLabels []string, values []float64, _ string) strin
 	if len(values) == 0 {
 		return ""
 	}
-	width := max(minChartWidth, len(xLabels)*8)
+
+	const labelMultiplier = 8
+
+	width := max(minChartWidth, len(xLabels)*labelMultiplier)
 	plot := asciigraph.Plot(values,
 		asciigraph.Caption(title),
 		asciigraph.Height(chartHeight),
@@ -21,15 +24,17 @@ func lineChart(title string, xLabels []string, values []float64, _ string) strin
 
 	yAxisWidth := yAxisMargin(values)
 	step := width / max(len(xLabels)-1, 1)
+
 	var axis strings.Builder
 	axis.WriteString(strings.Repeat(" ", yAxisWidth))
-	for i, l := range xLabels {
-		pad := step - len(l)
-		if i == 0 {
-			axis.WriteString(l)
+
+	for labelIdx, labelName := range xLabels {
+		pad := step - len(labelName)
+		if labelIdx == 0 {
+			axis.WriteString(labelName)
 		} else {
 			axis.WriteString(strings.Repeat(" ", max(pad, 1)))
-			axis.WriteString(l)
+			axis.WriteString(labelName)
 		}
 	}
 

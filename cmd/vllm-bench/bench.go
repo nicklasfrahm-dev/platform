@@ -22,21 +22,27 @@ func runBench(ctx context.Context, baseURL string, cfg config) {
 	benchCtx, cancel := context.WithTimeout(ctx, cfg.duration)
 	defer cancel()
 
-	st := &stats{}
-	var wg sync.WaitGroup
-	for i := range cfg.workers {
-		wg.Add(1)
+	stats := &stats{}
+
+	var waitGroup sync.WaitGroup
+
+	for workerIdx := range cfg.workers {
+		waitGroup.Add(1)
+
 		go func(id int) {
-			defer wg.Done()
-			benchWorker(benchCtx, id, baseURL, cfg, st)
-		}(i)
+			defer waitGroup.Done()
+
+			benchWorker(benchCtx, id, baseURL, cfg, stats)
+		}(workerIdx)
 	}
 
 	start := time.Now()
 	ticker := time.NewTicker(tickInterval)
+
 	defer ticker.Stop()
 
 	var throughputSamples []float64
+
 	var lastGenTok int64
 
 	for {
@@ -44,9 +50,9 @@ func runBench(ctx context.Context, baseURL string, cfg config) {
 		case <-ticker.C:
 			snap, _ := scrapeMetrics(baseURL + "/metrics")
 			elapsed := time.Since(start)
-			reqs := st.requests.Load()
-			gen := st.genTok.Load()
-			errs := st.errors.Load()
+			reqs := stats.requests.Load()
+			gen := stats.genTok.Load()
+			errs := stats.errors.Load()
 			deltaGen := gen - lastGenTok
 			lastGenTok = gen
 			tokPerSec := float64(deltaGen) / tickInterval.Seconds()
@@ -54,8 +60,8 @@ func runBench(ctx context.Context, baseURL string, cfg config) {
 			printTickLine(elapsed, reqs, errs, tokPerSec, float64(reqs)/elapsed.Seconds(), snap)
 
 		case <-benchCtx.Done():
-			wg.Wait()
-			printBenchSummary(start, st, throughputSamples)
+			waitGroup.Wait()
+			printBenchSummary(start, stats, throughputSamples)
 
 			return
 		}
@@ -69,7 +75,7 @@ func printTickLine(elapsed time.Duration, reqs, errs int64, tokPerSec, reqPerSec
 	)
 }
 
-func benchWorker(ctx context.Context, id int, baseURL string, cfg config, st *stats) {
+func benchWorker(ctx context.Context, workerID int, baseURL string, cfg config, stats *stats) {
 	for {
 		if ctx.Err() != nil {
 			return
@@ -89,25 +95,27 @@ func benchWorker(ctx context.Context, id int, baseURL string, cfg config, st *st
 		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, cfg.prompt, cfg.maxTokens)
 		if err != nil {
 			if ctx.Err() == nil {
-				log.Printf("worker %d: %v", id, err)
-				st.errors.Add(1)
+				log.Printf("worker %d: %v", workerID, err)
+				stats.errors.Add(1)
 			}
 
 			continue
 		}
-		st.requests.Add(1)
-		st.promptTok.Add(int64(result.promptTokens))
-		st.genTok.Add(int64(result.completionTokens))
-		st.latencyNs.Add(result.latency.Nanoseconds())
+
+		stats.requests.Add(1)
+
+		stats.promptTok.Add(int64(result.promptTokens))
+		stats.genTok.Add(int64(result.completionTokens))
+		stats.latencyNs.Add(result.latency.Nanoseconds())
 	}
 }
 
-func printBenchSummary(start time.Time, st *stats, samples []float64) {
+func printBenchSummary(start time.Time, stats *stats, samples []float64) {
 	elapsed := time.Since(start)
-	reqs := st.requests.Load()
-	gen := st.genTok.Load()
-	prompt := st.promptTok.Load()
-	errs := st.errors.Load()
+	reqs := stats.requests.Load()
+	gen := stats.genTok.Load()
+	prompt := stats.promptTok.Load()
+	errs := stats.errors.Load()
 
 	_, _ = fmt.Fprintf(os.Stdout, "\n─── summary ─────────────────────────────────────\n")
 	_, _ = fmt.Fprintf(os.Stdout, "duration:       %s\n", elapsed.Round(time.Millisecond))
@@ -115,7 +123,7 @@ func printBenchSummary(start time.Time, st *stats, samples []float64) {
 	_, _ = fmt.Fprintf(os.Stdout, "prompt tokens:  %d\n", prompt)
 	_, _ = fmt.Fprintf(os.Stdout, "gen tokens:     %d\n", gen)
 	_, _ = fmt.Fprintf(os.Stdout, "gen tok/s:      %.2f\n", float64(gen)/elapsed.Seconds())
-	_, _ = fmt.Fprintf(os.Stdout, "avg latency:    %s\n", avgLatency(st).Round(time.Millisecond))
+	_, _ = fmt.Fprintf(os.Stdout, "avg latency:    %s\n", avgLatency(stats).Round(time.Millisecond))
 
 	if len(samples) >= minChartSamples {
 		labels := timeLabels(len(samples), tickInterval)
@@ -124,22 +132,23 @@ func printBenchSummary(start time.Time, st *stats, samples []float64) {
 	}
 }
 
-func avgLatency(st *stats) time.Duration {
-	reqs := st.requests.Load()
+func avgLatency(stats *stats) time.Duration {
+	reqs := stats.requests.Load()
 	if reqs == 0 {
 		return 0
 	}
 
-	return time.Duration(st.latencyNs.Load() / reqs)
+	return time.Duration(stats.latencyNs.Load() / reqs)
 }
 
 // timeLabels builds evenly spaced x-axis labels for a chart of n samples at interval d.
 func timeLabels(n int, interval time.Duration) []string {
 	step := max(1, n/xAxisLabelDiv)
+
 	labels := make([]string, n)
-	for i := range n {
-		if i%step == 0 {
-			labels[i] = (time.Duration(i) * interval).String()
+	for labelIdx := range n {
+		if labelIdx%step == 0 {
+			labels[labelIdx] = (time.Duration(labelIdx) * interval).String()
 		}
 	}
 

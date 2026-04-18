@@ -61,12 +61,15 @@ func parseFlags() config {
 	flag.IntVar(&cfg.sweepReqs, "sweep-requests", defaultSweepReqs, "requests per context size in sweep mode (averaged)")
 	flag.IntVar(&cfg.sweepOutToks, "sweep-out-tokens", defaultSweepOutToks, "output tokens per request in sweep mode")
 	flag.Parse()
+
 	cfg.client = &http.Client{Timeout: clientTimeout}
+
 	return cfg
 }
 
 func main() {
-	if err := run(); err != nil {
+	err := run()
+	if err != nil {
 		log.Fatal(err)
 	}
 }
@@ -79,15 +82,19 @@ func run() error {
 	pod, err := findPod(ctx, cfg.namespace, cfg.selector)
 	if err != nil {
 		cancel()
+
 		return fmt.Errorf("find pod: %w", err)
 	}
+
 	_, _ = fmt.Fprintf(os.Stdout, "pod: %s\n", pod)
 
 	pfCtx, pfCancel := context.WithCancel(ctx)
 
-	if err := startPortForward(pfCtx, cfg.namespace, pod, cfg.port); err != nil {
+	err = startPortForward(pfCtx, cfg.namespace, pod, cfg.port)
+	if err != nil {
 		pfCancel()
 		cancel()
+
 		return fmt.Errorf("port-forward: %w", err)
 	}
 
@@ -102,51 +109,61 @@ func run() error {
 	} else {
 		runBench(ctx, baseURL, cfg)
 	}
+
 	return nil
 }
 
-func findPod(ctx context.Context, ns, selector string) (string, error) {
+func findPod(ctx context.Context, namespace, selector string) (string, error) {
 	out, err := exec.CommandContext(ctx, //nolint:gosec
 		"kubectl", "get", "pod",
-		"-n", ns, "-l", selector,
+		"-n", namespace, "-l", selector,
 		"--field-selector=status.phase=Running",
 		"-o", "jsonpath={.items[0].metadata.name}",
 	).Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("command execution: %w", err)
 	}
+
 	name := strings.TrimSpace(string(out))
 	if name == "" {
-		return "", fmt.Errorf("selector %q in namespace %q: %w", selector, ns, errNoPod)
+		return "", fmt.Errorf("selector %q in namespace %q: %w", selector, namespace, errNoPod)
 	}
+
 	return name, nil
 }
 
-func startPortForward(ctx context.Context, ns, pod string, localPort int) error {
+func startPortForward(ctx context.Context, namespace, pod string, localPort int) error {
 	cmd := exec.CommandContext(ctx, //nolint:gosec
 		"kubectl", "port-forward",
-		"-n", ns, "pod/"+pod,
+		"-n", namespace, "pod/"+pod,
 		fmt.Sprintf("%d:8000", localPort),
 	)
 	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
+
+	err := cmd.Start()
+	if err != nil {
 		return fmt.Errorf("start: %w", err)
 	}
 
 	url := fmt.Sprintf("http://localhost:%d/metrics", localPort)
+
 	deadline := time.Now().Add(pfTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(url) //nolint:gosec,noctx
 		if err == nil {
 			_ = resp.Body.Close()
+
 			_, _ = fmt.Fprintf(os.Stdout, "port-forward ready on localhost:%d\n\n", localPort)
+
 			return nil
 		}
+
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("port-forward context error: %w", ctx.Err())
 		case <-time.After(backoffDuration):
 		}
 	}
-	return errPortForwardTimeout
+
+	return fmt.Errorf("port-forward timeout: %w", errPortForwardTimeout)
 }

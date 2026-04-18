@@ -19,6 +19,7 @@ type sweepPoint struct {
 
 func parseSweepSizes(s string) []int {
 	var sizes []int
+
 	for part := range strings.SplitSeq(s, ",") {
 		v, err := strconv.Atoi(strings.TrimSpace(part))
 		if err == nil && v > 0 {
@@ -39,20 +40,21 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 		if ctx.Err() != nil {
 			break
 		}
-		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
 
-		pt, ok := measureSweepPoint(ctx, baseURL, cfg, target)
-		if !ok {
-			_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
+	_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
 
-			continue
-		}
+	sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target)
+	if !ok {
+		_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
 
-		results = append(results, pt)
+		continue
+	}
+
+		results = append(results, sweepPoint)
 		_, _ = fmt.Fprintf(os.Stdout, "prompt=%d  lat=%s  tok/s=%.1f\n",
-			pt.promptTokens,
-			pt.latency.Round(time.Millisecond),
-			float64(pt.completionTokens)/pt.latency.Seconds(),
+			sweepPoint.promptTokens,
+			sweepPoint.latency.Round(time.Millisecond),
+			float64(sweepPoint.completionTokens)/sweepPoint.latency.Seconds(),
 		)
 	}
 
@@ -67,21 +69,25 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 
 func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target int) (sweepPoint, bool) {
 	prompt := paddedPrompt(target)
+
 	var totalLat time.Duration
+
 	var totalPrompt, totalCompletion, succeeded int
 
-	for i := range cfg.sweepReqs {
+	for sweepIdx := range cfg.sweepReqs {
 		if ctx.Err() != nil {
 			break
 		}
+
 		waitForCapacity(ctx, baseURL, cfg)
 
 		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, prompt, cfg.sweepOutToks)
 		if err != nil {
-			log.Printf("request %d for %d tokens: %v", i+1, target, err)
+			log.Printf("request %d for %d tokens: %v", sweepIdx+1, target, err)
 
 			continue
 		}
+
 		totalLat += result.latency
 		totalPrompt += result.promptTokens
 		totalCompletion += result.completionTokens
@@ -102,12 +108,13 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 
 // waitForCapacity blocks until vLLM's waiting queue has room or the context is cancelled.
 func waitForCapacity(ctx context.Context, baseURL string, cfg config) {
-waitLoop:
+	waitLoop:
 	for {
 		snap, err := scrapeMetrics(baseURL + "/metrics")
 		if err != nil || snap.waiting < float64(cfg.maxQueue) {
 			break waitLoop
 		}
+
 		select {
 		case <-ctx.Done():
 			break waitLoop
@@ -121,15 +128,16 @@ func printSweepCharts(results []sweepPoint) {
 	latencies := make([]float64, len(results))
 	throughputs := make([]float64, len(results))
 
-	for i, r := range results {
-		k := r.promptTokens / tokensPerK
+	for idx, result := range results {
+		k := result.promptTokens / tokensPerK
 		if k == 0 {
-			labels[i] = fmt.Sprintf("%dt", r.promptTokens)
+			labels[idx] = fmt.Sprintf("%dt", result.promptTokens)
 		} else {
-			labels[i] = fmt.Sprintf("%dk", k)
+			labels[idx] = fmt.Sprintf("%dk", k)
 		}
-		latencies[i] = r.latency.Seconds()
-		throughputs[i] = float64(r.completionTokens) / r.latency.Seconds()
+
+		latencies[idx] = result.latency.Seconds()
+		throughputs[idx] = float64(result.completionTokens) / result.latency.Seconds()
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout)
@@ -142,13 +150,16 @@ func printSweepCharts(results []sweepPoint) {
 // Approximation: 1 token ≈ 3.5 characters for English prose.
 func paddedPrompt(targetTokens int) string {
 	question := "Summarise the above in one sentence."
+
 	charsNeeded := int(float64(targetTokens)*charsPerToken) - len(question) - paddingOverhead
 	if charsNeeded < 0 {
 		return question
 	}
+
 	seed := "The transformer architecture relies on self-attention mechanisms " +
 		"that allow each token in a sequence to attend to every other token, " +
 		"enabling the model to capture long-range dependencies efficiently. "
+
 	var sb strings.Builder
 	for sb.Len() < charsNeeded {
 		sb.WriteString(seed)

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -118,18 +118,31 @@ func findPod(ctx context.Context, namespace, selector string) (string, error) {
 		"kubectl", "get", "pod",
 		"-n", namespace, "-l", selector,
 		"--field-selector=status.phase=Running",
-		"-o", "jsonpath={.items[0].metadata.name}",
+		"-o", "json",
 	).Output()
 	if err != nil {
 		return "", fmt.Errorf("command execution: %w", err)
 	}
 
-	name := strings.TrimSpace(string(out))
-	if name == "" {
-		return "", fmt.Errorf("selector %q in namespace %q: %w", selector, namespace, errNoPod)
+	var list struct {
+		Items []struct {
+			Metadata struct {
+				Name              string `json:"name"`
+				DeletionTimestamp string `json:"deletionTimestamp"`
+			} `json:"metadata"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(out, &list); err != nil {
+		return "", fmt.Errorf("parse pod list: %w", err)
 	}
 
-	return name, nil
+	for _, item := range list.Items {
+		if item.Metadata.DeletionTimestamp == "" {
+			return item.Metadata.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("selector %q in namespace %q: %w", selector, namespace, errNoPod)
 }
 
 func startPortForward(ctx context.Context, namespace, pod string, localPort int) error {
@@ -145,6 +158,12 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 		return fmt.Errorf("start: %w", err)
 	}
 
+	// Monitor the command in a goroutine to catch unexpected exits
+	exitChan := make(chan error, 1)
+	go func() {
+		exitChan <- cmd.Wait()
+	}()
+
 	url := fmt.Sprintf("http://localhost:%d/metrics", localPort)
 
 	deadline := time.Now().Add(pfTimeout)
@@ -155,15 +174,29 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 
 			_, _ = fmt.Fprintf(os.Stdout, "port-forward ready on localhost:%d\n\n", localPort)
 
-			return nil
+			// Wait for command to fail or context to be cancelled
+			select {
+			case err := <-exitChan:
+				if err != nil {
+					return fmt.Errorf("port-forward process exited unexpectedly: %w", err)
+				}
+				return nil
+			case <-ctx.Done():
+				return fmt.Errorf("port-forward context error: %w", ctx.Err())
+			}
 		}
 
 		select {
+		case err := <-exitChan:
+			return fmt.Errorf("port-forward process exited unexpectedly: %w", err)
 		case <-ctx.Done():
 			return fmt.Errorf("port-forward context error: %w", ctx.Err())
 		case <-time.After(backoffDuration):
 		}
 	}
 
+	// Cleanup if timeout occurs
+	_ = cmd.Process.Kill()
 	return fmt.Errorf("port-forward timeout: %w", errPortForwardTimeout)
 }
+

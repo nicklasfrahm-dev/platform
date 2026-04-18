@@ -51,7 +51,7 @@ func parseFlags() config {
 	flag.IntVar(&cfg.workers, "workers", 1, "concurrent workers; each sends requests sequentially")
 	flag.StringVar(&cfg.namespace, "namespace", "llm", "kubernetes namespace")
 	flag.StringVar(&cfg.selector, "selector", defaultSelector, "pod label selector")
-	flag.StringVar(&cfg.model, "model", "gemma4-26b-a4b-it", "served model name")
+	flag.StringVar(&cfg.model, "model", "gemma-4-26b-a4b-it", "served model name")
 	flag.IntVar(&cfg.maxTokens, "max-tokens", defaultMaxTokens, "max completion tokens per request")
 	flag.IntVar(&cfg.maxQueue, "max-queue", defaultMaxQueue, "pause worker when vLLM waiting queue reaches this depth")
 	flag.IntVar(&cfg.port, "port", defaultPort, "local port for kubectl port-forward")

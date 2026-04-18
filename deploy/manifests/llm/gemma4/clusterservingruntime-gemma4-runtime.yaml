@@ -18,7 +18,7 @@ spec:
     - name: kserve-container
       image: vllm/vllm-openai:gemma4
       args:
-        - "--model=${MODEL_ID}"
+        - "--model=$(MODEL_ID)"
         - "--tensor-parallel-size=1"
         - "--gpu-memory-utilization=0.95"
         - "--max-model-len=131072"

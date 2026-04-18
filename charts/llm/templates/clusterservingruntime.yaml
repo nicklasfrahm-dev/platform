@@ -36,6 +36,8 @@ spec:
               key: HF_TOKEN
         - name: PYTHONPATH
           value: "/opt/workspace/middlewares:${PYTHONPATH:-}"
+        - name: PYTORCH_ALLOC_CONF
+          value: "expandable_segments:True"
       volumeMounts:
         - name: middleware-volume
           mountPath: /opt/workspace/middlewares

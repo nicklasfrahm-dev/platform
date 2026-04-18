@@ -54,3 +54,6 @@ kubeconfig.yml
 
 # Talos credentials.
 talosconfig
+
+# Talos generated cluster configs.
+**/gen/

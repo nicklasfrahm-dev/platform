@@ -1,6 +1,8 @@
 name: fw01
 endpoint: https://10.0.11.104:6443
-nodes:
-  controlplanes:
-    - name: bee
-      host: 10.0.11.104
+pools:
+  - name: controlplane
+    role: controlplane
+    nodes:
+      - name: bee
+        host: 10.0.11.104

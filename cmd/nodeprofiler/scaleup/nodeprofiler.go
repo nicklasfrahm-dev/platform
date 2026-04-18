@@ -1,7 +1,9 @@
+// Package scaleup provides tooling to profile Kubernetes node scale-up events.
 package scaleup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -20,25 +22,26 @@ import (
 
 var (
 	// ErrNoKubeconfig is returned when no kubeconfig is found.
-	ErrNoKubeconfig = fmt.Errorf("KUBECONFIG not set and default config file does not exist")
+	ErrNoKubeconfig = errors.New("KUBECONFIG not set and default config file does not exist")
 )
 
-// NodeProfiler handles node watching and profiling
+// NodeProfiler handles node watching and profiling.
 type NodeProfiler struct {
 	clientset *kubernetes.Clientset
 	timeline  *Timeline
 	logger    *zap.Logger
 }
 
-// NewNodeProfiler creates a new profiler
+// NewNodeProfiler creates a new profiler.
 func NewNodeProfiler(logger *zap.Logger) (*NodeProfiler, error) {
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if kubeconfig == "" {
 		// Default to ~/.kube/config if KUBECONFIG is not set.
 		homedir := homedir.HomeDir()
-		kubeconfig = fmt.Sprintf("%s/.kube/config", homedir)
+		kubeconfig = homedir + "/.kube/config"
 
-		if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
+		_, statErr := os.Stat(kubeconfig)
+		if os.IsNotExist(statErr) {
 			return nil, fmt.Errorf("failed to find kubeconfig: %w: %s", ErrNoKubeconfig, kubeconfig)
 		}
 	}
@@ -84,7 +87,7 @@ func (np *NodeProfiler) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to watch nodes: %w", err)
 	}
 
-	wg := &sync.WaitGroup{}
+	waitGroup := &sync.WaitGroup{}
 
 	for event := range watcher.ResultChan() {
 		if event.Type == watch.Added {
@@ -104,11 +107,11 @@ func (np *NodeProfiler) Run(ctx context.Context) error {
 
 			np.timeline.Add(time.Now(), "Node/Event", "NodeAdded").Log(np.logger, zap.String("node", node.Name))
 
-			wg.Go(func() {
+			waitGroup.Go(func() {
 				np.recordEvents(ctx, node.Name)
 			})
 
-			wg.Go(func() {
+			waitGroup.Go(func() {
 				np.recordConditions(ctx, node.Name)
 			})
 
@@ -127,7 +130,16 @@ func (np *NodeProfiler) Run(ctx context.Context) error {
 		}
 	}
 
-	wg.Wait()
+	waitGroup.Wait()
+
+	return nil
+}
+
+// Print outputs the timeline to the console in a tabular format.
+func (np *NodeProfiler) Print(_ context.Context) error {
+	_, _ = fmt.Fprintf(os.Stdout, "\n\n")
+
+	np.timeline.Print()
 
 	return nil
 }
@@ -144,6 +156,7 @@ func (np *NodeProfiler) recordEvents(ctx context.Context, nodeName string) {
 	})
 	if err != nil {
 		np.logger.Error("Failed to watch node events", zap.Error(err))
+
 		return
 	}
 	defer watcher.Stop()
@@ -170,6 +183,23 @@ func (np *NodeProfiler) recordEvents(ctx context.Context, nodeName string) {
 	}
 }
 
+func (np *NodeProfiler) recordConditionTransition(
+	cond v1.NodeCondition,
+	conditionStates map[v1.NodeConditionType]v1.ConditionStatus,
+) {
+	prevStatus, exists := conditionStates[cond.Type]
+	if !exists || prevStatus != cond.Status {
+		transitionMsg := fmt.Sprintf("%s: %s", cond.Type, cond.Status)
+		if exists {
+			transitionMsg = fmt.Sprintf("%s: %s >> %s", cond.Type, prevStatus, cond.Status)
+		}
+
+		np.timeline.Add(time.Now(), "Node/Condition", transitionMsg).Log(np.logger)
+
+		conditionStates[cond.Type] = cond.Status
+	}
+}
+
 // recordConditions watches for changes in node conditions and logs them to the timeline.
 // It listens for node condition updates and records transitions in their status until the context is cancelled.
 // It tracks the previous state of each condition to detect transitions.
@@ -193,10 +223,12 @@ func (np *NodeProfiler) recordConditions(ctx context.Context, nodeName string) {
 		select {
 		case <-ctx.Done():
 			np.logger.Info("Stopping condition watcher due to context cancellation")
+
 			return
-		case event, ok := <-watcher.ResultChan():
-			if !ok {
+		case event, chanOpen := <-watcher.ResultChan():
+			if !chanOpen {
 				np.logger.Info("Node ci watcher channel closed")
+
 				return
 			}
 
@@ -204,37 +236,15 @@ func (np *NodeProfiler) recordConditions(ctx context.Context, nodeName string) {
 				continue
 			}
 
-			node, ok := event.Object.(*v1.Node)
-			if !ok {
+			node, nodeOK := event.Object.(*v1.Node)
+			if !nodeOK {
 				continue
 			}
 
 			// Check for condition transitions
 			for _, cond := range node.Status.Conditions {
-				prevStatus, exists := conditionStates[cond.Type]
-				if !exists || prevStatus != cond.Status {
-					// This is the initial state.
-					transitionMsg := fmt.Sprintf("%s: %s", cond.Type, cond.Status)
-					if exists {
-						// This is a transition from a previous state.
-						transitionMsg = fmt.Sprintf("%s: %s >> %s", cond.Type, prevStatus, cond.Status)
-					}
-
-					np.timeline.Add(time.Now(), "Node/Condition", transitionMsg).Log(np.logger)
-
-					// Update the stored state.
-					conditionStates[cond.Type] = cond.Status
-				}
+				np.recordConditionTransition(cond, conditionStates)
 			}
 		}
 	}
-}
-
-// Print outputs the timeline to the console in a tabular format.
-func (np *NodeProfiler) Print(_ context.Context) error {
-	fmt.Print("\n\n")
-
-	np.timeline.Print()
-
-	return nil
 }

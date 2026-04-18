@@ -1,6 +1,8 @@
+// Package service provides the bootstrap functionality for services.
 package service
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -14,11 +16,20 @@ import (
 const (
 	deployDir = "deploy"
 	// defaultValues is just an empty YAML file with a trailing newline.
-	defaultValues = ``
+	defaultValues    = ``
+	targetParts      = 2
+	clusterNameParts = 2
 )
 
-func Bootstrap(logger *zap.Logger) *cobra.Command {
+var (
+	errInvalidTargetFormat = errors.New("invalid target format: expected <cluster>/<tenant>")
+	errInvalidClusterName  = errors.New("invalid cluster name")
+)
+
+// Bootstrap returns a cobra command to bootstrap a new service.
+func Bootstrap(_ *zap.Logger) *cobra.Command {
 	var target string
+
 	var chart string
 
 	cmd := &cobra.Command{
@@ -26,59 +37,11 @@ func Bootstrap(logger *zap.Logger) *cobra.Command {
 		Short: "Bootstrap the service",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// This should never happen,
-			// but better safe than sorry.
 			if len(args) != 1 {
 				return cmd.Help()
 			}
 
-			serviceName := args[0]
-			serviceDir := path.Join(deployDir, "services", serviceName)
-
-			job := workflow.NewJob(
-				workflow.EnsureDirectory(serviceDir),
-				workflow.EnsureFile(path.Join(serviceDir, "00-base.yml"), []byte(defaultValues)),
-			)
-
-			environments, clusters, err := getEnvironmentsAndClusters()
-			if err != nil {
-				return fmt.Errorf("failed to get environments and clusters: %w", err)
-			}
-
-			for _, environment := range environments {
-				job.AddStep(workflow.EnsureFile(path.Join(serviceDir, "10-env-"+environment+".yml"), []byte(defaultValues)))
-			}
-
-			for _, cluster := range clusters {
-				job.AddStep(workflow.EnsureFile(path.Join(serviceDir, "20-cluster-"+cluster+".yml"), []byte(defaultValues)))
-			}
-
-			if target != "" {
-				chunks := strings.Split(target, "/")
-				if len(chunks) != 2 {
-					return fmt.Errorf("found invalid target format: expected <cluster>/<tenant> but got: %s", target)
-				}
-
-				cluster := chunks[0]
-				tenant := chunks[1]
-				tenantDir := path.Join(deployDir, "clusters", cluster, tenant)
-
-				job.AddStep(workflow.EnsureDirectory(tenantDir))
-
-				// Default to service name if the chart is not provided.
-				if chart == "" {
-					chart = serviceName
-				}
-
-				job.AddStep(workflow.EnsureFile(path.Join(tenantDir, serviceName+".yml"), []byte(newDefaultConfig(chart))))
-			}
-
-			err = job.Execute()
-			if err != nil {
-				return fmt.Errorf("failed to bootstrap service: %w", err)
-			}
-
-			return nil
+			return runBootstrap(args[0], target, chart)
 		},
 	}
 
@@ -88,9 +51,67 @@ func Bootstrap(logger *zap.Logger) *cobra.Command {
 	return cmd
 }
 
+func runBootstrap(serviceName, target, chart string) error {
+	serviceDir := path.Join(deployDir, "services", serviceName)
+
+	job := workflow.NewJob(
+		workflow.EnsureDirectory(serviceDir),
+		workflow.EnsureFile(path.Join(serviceDir, "00-base.yml"), []byte(defaultValues)),
+	)
+
+	environments, clusters, err := getEnvironmentsAndClusters()
+	if err != nil {
+		return fmt.Errorf("failed to get environments and clusters: %w", err)
+	}
+
+	for _, environment := range environments {
+		job.AddStep(workflow.EnsureFile(path.Join(serviceDir, "10-env-"+environment+".yml"), []byte(defaultValues)))
+	}
+
+	for _, cluster := range clusters {
+		job.AddStep(workflow.EnsureFile(path.Join(serviceDir, "20-cluster-"+cluster+".yml"), []byte(defaultValues)))
+	}
+
+	if target != "" {
+		err = addTenantSteps(job, serviceName, target, chart)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = job.Execute()
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap service: %w", err)
+	}
+
+	return nil
+}
+
+func addTenantSteps(job *workflow.Job, serviceName, target, chart string) error {
+	chunks := strings.Split(target, "/")
+	if len(chunks) != targetParts {
+		return fmt.Errorf("%w: %s", errInvalidTargetFormat, target)
+	}
+
+	cluster := chunks[0]
+	tenant := chunks[1]
+	tenantDir := path.Join(deployDir, "clusters", cluster, tenant)
+
+	job.AddStep(workflow.EnsureDirectory(tenantDir))
+
+	if chart == "" {
+		chart = serviceName
+	}
+
+	job.AddStep(workflow.EnsureFile(path.Join(tenantDir, serviceName+".yml"), []byte(newDefaultConfig(chart))))
+
+	return nil
+}
+
 // getEnvironmentsAndClusters returns a list of environments and clusters.
 func getEnvironmentsAndClusters() ([]string, []string, error) {
 	var environments []string
+
 	var clusters []string
 
 	entries, err := os.ReadDir(path.Join(deployDir, "clusters"))
@@ -101,10 +122,10 @@ func getEnvironmentsAndClusters() ([]string, []string, error) {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			cluster := entry.Name()
-			parts := strings.SplitN(cluster, "-", 2)
+			parts := strings.SplitN(cluster, "-", clusterNameParts)
 
-			if len(parts) != 2 {
-				return nil, nil, fmt.Errorf("found invalid cluster name: %s", cluster)
+			if len(parts) != clusterNameParts {
+				return nil, nil, fmt.Errorf("%w: %s", errInvalidClusterName, cluster)
 			}
 
 			environment := parts[0]

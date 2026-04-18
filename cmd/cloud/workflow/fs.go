@@ -1,14 +1,21 @@
+// Package workflow provides reusable workflow steps for file and directory operations.
 package workflow
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
-// EnsureDirectoryStep creates a step that ensures the specified directory exists.
+const (
+	dirPermissions  = 0750
+	filePermissions = 0600
+)
+
+// EnsureDirectory creates a step that ensures the specified directory exists.
 func EnsureDirectory(dir string) Step {
 	return func() error {
-		err := os.MkdirAll(dir, 0755)
+		err := os.MkdirAll(dir, dirPermissions)
 		if err != nil {
 			return fmt.Errorf("failed to ensure directory: %s: %w", dir, err)
 		}
@@ -22,12 +29,17 @@ func EnsureDirectory(dir string) Step {
 // is empty, an empty file will be created.
 func EnsureFile(filePath string, content []byte) Step {
 	return func() error {
-		file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0644)
+		file, err := os.OpenFile(filepath.Clean(filePath), os.O_CREATE|os.O_RDWR, filePermissions)
 		if err != nil {
 			return fmt.Errorf("failed to open file: %s: %w", filePath, err)
 		}
 
-		defer file.Close()
+					defer func() {
+				closeErr := file.Close()
+				if closeErr != nil && err == nil {
+					err = closeErr
+				}
+			}()
 
 		info, err := file.Stat()
 		if err != nil {

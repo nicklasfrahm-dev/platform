@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,8 +14,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var errMissingDurationArg = errors.New("failed to fetch duration argument")
+
 // ScaleUpCommand returns a cobra command to benchmark node scaling.
-func ScaleUpCommand(logger *zap.Logger) *cobra.Command {
+func ScaleUpCommand(_ *zap.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "scaleup <duration>",
 		Short: "Benchmark node scaling in Kubernetes",
@@ -29,7 +32,7 @@ on the node and the node conditions.`,
 			}
 
 			if len(args) < 1 {
-				return fmt.Errorf("failed to fetch duration argument")
+				return errMissingDurationArg
 			}
 
 			timeout, err := time.ParseDuration(args[0])
@@ -39,6 +42,7 @@ on the node and the node conditions.`,
 
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 			ctx, cancelSignal := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 			defer cancelSignal()
 

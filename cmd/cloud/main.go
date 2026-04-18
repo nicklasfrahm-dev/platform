@@ -1,3 +1,4 @@
+// Package main provides the entry point for the cloud CLI.
 package main
 
 import (
@@ -11,7 +12,6 @@ import (
 
 // version holds the version of the application. It is injected at build time.
 var version string
-var help bool
 
 func RootCommand(logger *zap.Logger) *cobra.Command {
 	cmd := &cobra.Command{
@@ -19,20 +19,16 @@ func RootCommand(logger *zap.Logger) *cobra.Command {
 		Short:   "cloud manages services in my infrastructure.",
 		Long:    `cloud is a command line tool to manage services in my infrastructure.`,
 		Version: version,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if help {
-				return cmd.Help()
-			}
-
-			return nil
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return cmd.Help()
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},
 	}
 
 	// Add global flags.
-	cmd.PersistentFlags().BoolVarP(&help, "help", "h", false, "Show help for command")
+	cmd.PersistentFlags().BoolP("help", "h", false, "Show help for command")
 
 	// Add subcommands.
 	cmd.AddCommand(service.RootCommand(logger))
@@ -44,7 +40,7 @@ func main() {
 	// Default to console logger.
 	format := os.Getenv("LOG_FORMAT")
 	if format == "" {
-		os.Setenv("LOG_FORMAT", "console")
+		_ = os.Setenv("LOG_FORMAT", "console")
 	}
 
 	logger := logging.NewLogger()

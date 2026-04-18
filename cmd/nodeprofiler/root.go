@@ -15,14 +15,15 @@ func RootCommand(logger *zap.Logger) *cobra.Command {
 		Use:   "nodeprofiler",
 		Short: "A CLI to profile node scalability",
 		Long:  `A command line interface to profile node scalability in Kubernetes.`,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 			if help {
-				cmd.Help()
+				_ = cmd.Help()
+
 				os.Exit(0)
 			}
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Help()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			_ = cmd.Help()
 
 			return nil
 		},

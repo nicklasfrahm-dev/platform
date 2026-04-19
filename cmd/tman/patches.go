@@ -27,6 +27,7 @@ var poolRe = regexp.MustCompile(`^20-pool-(.+)\.yaml$`)
 
 func classifyPatch(path string) Patch {
 	base := filepath.Base(path)
+
 	switch {
 	case strings.HasPrefix(base, "00-"):
 		return Patch{Path: path, Kind: PatchBase}
@@ -35,9 +36,11 @@ func classifyPatch(path string) Patch {
 	case strings.HasPrefix(base, "10-role-worker"):
 		return Patch{Path: path, Kind: PatchWorker}
 	default:
-		if m := poolRe.FindStringSubmatch(base); m != nil {
-			return Patch{Path: path, Kind: PatchPool, Pool: m[1]}
+		match := poolRe.FindStringSubmatch(base)
+		if match != nil {
+			return Patch{Path: path, Kind: PatchPool, Pool: match[1]}
 		}
+
 		return Patch{Path: path, Kind: PatchBase}
 	}
 }
@@ -47,10 +50,14 @@ func loadPatches(clusterDir string) ([]Patch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("glob patches: %w", err)
 	}
+
 	sort.Strings(files)
+
 	patches := make([]Patch, len(files))
+
 	for i, f := range files {
 		patches[i] = classifyPatch(f)
 	}
+
 	return patches, nil
 }

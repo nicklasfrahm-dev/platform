@@ -26,35 +26,63 @@ type Meta struct {
 }
 
 func loadMeta(clusterDir string) (*Meta, error) {
-	data, err := os.ReadFile(filepath.Join(clusterDir, "meta.yaml"))
+	data, err := os.ReadFile(filepath.Join(clusterDir, "meta.yaml")) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read meta.yaml: %w", err)
 	}
-	var m Meta
-	if err := yaml.Unmarshal(data, &m); err != nil {
+
+	var meta Meta
+
+	err = yaml.Unmarshal(data, &meta)
+	if err != nil {
 		return nil, fmt.Errorf("parse meta.yaml: %w", err)
 	}
-	if m.Name == "" {
-		return nil, fmt.Errorf("meta.yaml: missing name")
+
+	err = validateMeta(&meta)
+	if err != nil {
+		return nil, err
 	}
-	if m.Endpoint == "" {
-		return nil, fmt.Errorf("meta.yaml: missing endpoint")
+
+	return &meta, nil
+}
+
+func validateMeta(meta *Meta) error {
+	if meta.Name == "" {
+		return errMissingName
 	}
-	if len(m.Pools) == 0 {
-		return nil, fmt.Errorf("meta.yaml: no pools defined")
+
+	if meta.Endpoint == "" {
+		return errMissingEndpoint
 	}
-	for _, p := range m.Pools {
-		if p.Name == "" {
-			return nil, fmt.Errorf("meta.yaml: pool missing name")
+
+	if len(meta.Pools) == 0 {
+		return errNoPools
+	}
+
+	for _, pool := range meta.Pools {
+		err := validatePool(pool)
+		if err != nil {
+			return err
 		}
-		if p.Role != "controlplane" && p.Role != "worker" {
-			return nil, fmt.Errorf("meta.yaml: pool %q: role must be 'controlplane' or 'worker'", p.Name)
-		}
-		for _, n := range p.Nodes {
-			if n.Host == "" {
-				return nil, fmt.Errorf("meta.yaml: pool %q: node %q missing host", p.Name, n.Name)
-			}
+	}
+
+	return nil
+}
+
+func validatePool(pool Pool) error {
+	if pool.Name == "" {
+		return errPoolMissingName
+	}
+
+	if pool.Role != "controlplane" && pool.Role != "worker" {
+		return fmt.Errorf("meta.yaml: pool %q: %w", pool.Name, errInvalidRole)
+	}
+
+	for _, node := range pool.Nodes {
+		if node.Host == "" {
+			return fmt.Errorf("meta.yaml: pool %q: node %q: %w", pool.Name, node.Name, errMissingHost)
 		}
 	}
-	return &m, nil
+
+	return nil
 }

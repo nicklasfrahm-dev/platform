@@ -13,22 +13,31 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func newApplyCmd() *cobra.Command {
+const (
+	talosApplyTimeout   = 10 * time.Second
+	nodeReadyTimeout    = 5 * time.Minute
+	nodePollingInterval = 5 * time.Second
+)
+
+func (a *application) newApplyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply <cluster>",
 		Short: "Apply Talos configs to all cluster nodes",
 		Args:  cobra.ExactArgs(1),
-		RunE:  runApply,
+		RunE:  a.runApply,
 	}
+
 	cmd.Flags().Bool("reboot", false, "reboot nodes after applying config")
+
 	return cmd
 }
 
-func runApply(cmd *cobra.Command, args []string) error {
-	clusterDir := filepath.Join(clusterHome, args[0])
+func (a *application) runApply(cmd *cobra.Command, args []string) error {
+	clusterDir := filepath.Join(a.clusterHome, args[0])
 	reboot, _ := cmd.Flags().GetBool("reboot")
 
-	if err := checkDeps("talosctl", "kubectl"); err != nil {
+	err := checkDeps("talosctl", "kubectl")
+	if err != nil {
 		return err
 	}
 
@@ -38,45 +47,56 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	genDir := filepath.Join(clusterDir, "gen")
+
 	talosconfig, err := resolveTalosconfig(clusterDir, genDir)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Applying Talos configs for cluster: %s\n", meta.Name)
-	fmt.Println("==================================================")
+	_, _ = fmt.Fprintf(os.Stdout, "Applying Talos configs for cluster: %s\n", meta.Name)
+	_, _ = fmt.Fprintln(os.Stdout, "==================================================")
 
 	total, failed := 0, 0
+
 	for _, pool := range meta.Pools {
 		configFile := filepath.Join(genDir, pool.Name+".yaml")
-		if _, err := os.Stat(configFile); err != nil {
-			fmt.Fprintf(os.Stderr, "  [pool/%s] ERROR: missing gen/%s.yaml — run 'tman gen' first\n", pool.Name, pool.Name)
+
+		_, err = os.Stat(configFile)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr,
+				"  [pool/%s] ERROR: missing gen/%s.yaml — run 'tman gen' first\n",
+				pool.Name, pool.Name)
 			failed += len(pool.Nodes)
 			total += len(pool.Nodes)
+
 			continue
 		}
+
 		for _, node := range pool.Nodes {
 			total++
-			if err := applyNode(talosconfig, node, configFile, reboot); err != nil {
-				fmt.Fprintf(os.Stderr, "  [%s/%s] ERROR: %v\n", node.Host, node.Name, err)
+
+			err = applyNode(talosconfig, node, configFile, reboot)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "  [%s/%s] ERROR: %v\n", node.Host, node.Name, err)
 				failed++
 			}
 		}
 	}
 
-	fmt.Println("==================================================")
-	fmt.Printf("Total:   %d\n", total)
-	fmt.Printf("Failed:  %d\n", failed)
-	fmt.Printf("Success: %d\n", total-failed)
+	_, _ = fmt.Fprintln(os.Stdout, "==================================================")
+	_, _ = fmt.Fprintf(os.Stdout, "Total:   %d\n", total)
+	_, _ = fmt.Fprintf(os.Stdout, "Failed:  %d\n", failed)
+	_, _ = fmt.Fprintf(os.Stdout, "Success: %d\n", total-failed)
 
 	if failed > 0 {
-		return fmt.Errorf("%d node(s) failed", failed)
+		return fmt.Errorf("%d %w", failed, errNodesFailed)
 	}
+
 	return nil
 }
 
 func applyNode(talosconfig string, node Node, configFile string, reboot bool) error {
-	fmt.Printf("  Applying [%s/%s]\n", node.Host, node.Name)
+	_, _ = fmt.Fprintf(os.Stdout, "  Applying [%s/%s]\n", node.Host, node.Name)
 
 	config, err := buildNodeConfig(configFile, node)
 	if err != nil {
@@ -85,47 +105,65 @@ func applyNode(talosconfig string, node Node, configFile string, reboot bool) er
 
 	tmp, err := os.CreateTemp("", "tman-*.yaml")
 	if err != nil {
-		return err
+		return fmt.Errorf("create temp file: %w", err)
 	}
-	defer os.Remove(tmp.Name())
-	if _, err := tmp.Write(config); err != nil {
-		return err
+
+	defer func() { _ = os.Remove(tmp.Name()) }()
+
+	_, err = tmp.Write(config)
+	if err != nil {
+		return fmt.Errorf("write temp file: %w", err)
 	}
-	tmp.Close()
+
+	err = tmp.Close()
+	if err != nil {
+		return fmt.Errorf("close temp file: %w", err)
+	}
 
 	base := []string{"--talosconfig", talosconfig, "--endpoints", node.Host, "--nodes", node.Host}
 	applyArgs := append(append([]string{}, base...), "apply", "--file", tmp.Name())
 
-	if err := execCmdTimeout(10*time.Second, "talosctl", applyArgs...); err != nil {
-		fmt.Printf("  [%s/%s] Normal apply failed, trying maintenance mode\n", node.Host, node.Name)
-		insecureArgs := append(applyArgs, "--insecure")
-		if err2 := execCmdTimeout(10*time.Second, "talosctl", insecureArgs...); err2 != nil {
+	err = execCmdTimeout(talosApplyTimeout, "talosctl", applyArgs...)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Normal apply failed, trying maintenance mode\n", node.Host, node.Name)
+
+		insecureArgs := append(append([]string(nil), applyArgs...), "--insecure")
+
+		err2 := execCmdTimeout(talosApplyTimeout, "talosctl", insecureArgs...)
+		if err2 != nil {
 			return fmt.Errorf("apply failed (normal and maintenance): %w", err)
 		}
-		fmt.Printf("  [%s/%s] Applied in maintenance mode\n", node.Host, node.Name)
+
+		_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Applied in maintenance mode\n", node.Host, node.Name)
 	} else {
-		fmt.Printf("  [%s/%s] Applied successfully\n", node.Host, node.Name)
+		_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Applied successfully\n", node.Host, node.Name)
 	}
 
 	if reboot {
-		fmt.Printf("  [%s/%s] Rebooting\n", node.Host, node.Name)
-		if err := execCmd("talosctl", append(base, "reboot")...); err != nil {
+		_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Rebooting\n", node.Host, node.Name)
+
+		err = execTalosctl(append(base, "reboot")...)
+		if err != nil {
 			return fmt.Errorf("reboot: %w", err)
 		}
-		if err := waitNodeReady(talosconfig, node, 5*time.Minute); err != nil {
+
+		err = waitNodeReady(talosconfig, node, nodeReadyTimeout)
+		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func buildNodeConfig(configFile string, node Node) ([]byte, error) {
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configFile) //nolint:gosec
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read config: %w", err)
 	}
 
 	var buf bytes.Buffer
+
 	buf.Write(filterDocs(data, "HostnameConfig"))
 
 	if node.Name != "" {
@@ -139,26 +177,33 @@ var docSepRe = regexp.MustCompile(`(?m)^---\s*$`)
 
 func filterDocs(data []byte, excludeKind string) []byte {
 	parts := docSepRe.Split(string(data), -1)
+
 	var kept []string
-	for _, p := range parts {
-		t := strings.TrimSpace(p)
-		if t == "" || isDocKind([]byte(t), excludeKind) {
+
+	for _, doc := range parts {
+		trimmed := strings.TrimSpace(doc)
+		if trimmed == "" || isDocKind([]byte(trimmed), excludeKind) {
 			continue
 		}
-		kept = append(kept, t)
+
+		kept = append(kept, trimmed)
 	}
+
 	if len(kept) == 0 {
 		return nil
 	}
+
 	return []byte(strings.Join(kept, "\n---\n") + "\n")
 }
 
 func isDocKind(doc []byte, kind string) bool {
-	var m struct {
+	var docHeader struct {
 		Kind string `yaml:"kind"`
 	}
-	_ = yaml.Unmarshal(doc, &m)
-	return m.Kind == kind
+
+	_ = yaml.Unmarshal(doc, &docHeader)
+
+	return docHeader.Kind == kind
 }
 
 func resolveTalosconfig(clusterDir, genDir string) (string, error) {
@@ -166,31 +211,37 @@ func resolveTalosconfig(clusterDir, genDir string) (string, error) {
 		filepath.Join(clusterDir, "talosconfig"),
 		filepath.Join(genDir, "talosconfig"),
 	}
+
 	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
+		_, err := os.Stat(c)
+		if err == nil {
 			return c, nil
 		}
 	}
-	return "", fmt.Errorf("talosconfig not found in gen/ or cluster root — run 'tman gen' first")
+
+	return "", errTalosconfig
 }
 
 func waitNodeReady(talosconfig string, node Node, timeout time.Duration) error {
-	fmt.Printf("  [%s/%s] Waiting for node to be ready\n", node.Host, node.Name)
+	_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Waiting for node to be ready\n", node.Host, node.Name)
+
 	deadline := time.Now().Add(timeout)
-	interval := 5 * time.Second
+	interval := nodePollingInterval
 
 	for time.Now().Before(deadline) {
-		err := execCmdTimeout(5*time.Second, "talosctl",
+		err := execCmdTimeout(interval, "talosctl",
 			"--talosconfig", talosconfig,
 			"--nodes", node.Host, "--endpoints", node.Host,
 			"version")
 		if err == nil {
 			break
 		}
+
 		time.Sleep(interval)
 	}
+
 	if time.Now().After(deadline) {
-		return fmt.Errorf("timed out waiting for talos on %s", node.Host)
+		return fmt.Errorf("%w: %s", errTalosTimeout, node.Host)
 	}
 
 	if node.Name != "" {
@@ -200,11 +251,13 @@ func waitNodeReady(talosconfig string, node Node, timeout time.Duration) error {
 				"--for=condition=Ready",
 				fmt.Sprintf("--timeout=%ds", int(interval.Seconds())))
 			if err == nil {
-				fmt.Printf("  [%s/%s] Node is ready\n", node.Host, node.Name)
+				_, _ = fmt.Fprintf(os.Stdout, "  [%s/%s] Node is ready\n", node.Host, node.Name)
+
 				return nil
 			}
 		}
-		return fmt.Errorf("timed out waiting for kubernetes node %s", node.Name)
+
+		return fmt.Errorf("%w: %s", errKubeTimeout, node.Name)
 	}
 
 	return nil

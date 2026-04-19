@@ -20,3 +20,7 @@ pools:
     nodes:
       - name: elk
         host: 10.0.20.5
+      - name: fox
+        host: 10.0.20.6
+      - name: genet
+        host: 10.0.20.7

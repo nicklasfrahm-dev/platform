@@ -1,14 +1,15 @@
+{{- $profile := index .Values.model.profile .Values.model.name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vllm-middlewares
-  namespace: platform
+  name: {{ .Release.Name }}-middlewares
+  namespace: {{ .Release.Namespace }}
 data:
   backpressure.py: |
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import JSONResponse
 
-    MAX_CONCURRENT = 1  # mirrors --max-num-seqs
+    MAX_CONCURRENT = {{ $profile.maxNumSeqs }}  # mirrors --max-num-seqs
 
     class BackpressureMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

@@ -1,17 +1,9 @@
-# -----------------------------
-# ClusterServingRuntime (vLLM / Qwen3 30B-A3B AWQ)
-# MoE model: 30.5B total params, 3.3B active per token.
-# YaRN rope scaling extends native 32K context to 131K.
-# fp8 KV cache halves per-token KV memory (~48 KB/token),
-# giving ~156K token KV pool on a 24 GB GPU.
-# Thinking mode via deepseek_r1 reasoning parser.
-# Backpressure middleware: returns HTTP 503 when
-# server_load_metrics >= max_num_seqs.
-# -----------------------------
+{{- $profile := index .Values.model.profile .Values.model.name }}
+{{- $version := (($profile).vllm).version | default .Values.runtime.vllm.version }}
 apiVersion: serving.kserve.io/v1alpha1
 kind: ClusterServingRuntime
 metadata:
-  name: vllm-qwen3-30b-runtime
+  name: {{ .Release.Name }}-runtime
 spec:
   supportedModelFormats:
     - name: huggingface
@@ -19,22 +11,20 @@ spec:
       autoSelect: false
   containers:
     - name: kserve-container
-      image: vllm/vllm-openai:latest
+      image: vllm/vllm-openai:{{ $version }}
       args:
         - "--model=$(MODEL_ID)"
         - "--tensor-parallel-size=1"
         - "--gpu-memory-utilization=0.95"
-        - "--max-model-len=40960"
         - "--dtype=auto"
-        - "--kv-cache-dtype=fp8"
         - "--trust-remote-code"
-        - "--quantization=awq_marlin"
-        - "--max-num-seqs=1"
+        - "--max-num-seqs={{ $profile.maxNumSeqs }}"
         - "--enable-server-load-tracking"
         - "--middleware=backpressure.BackpressureMiddleware"
         - "--enable-auto-tool-choice"
-        - "--tool-call-parser=hermes"
-        - "--reasoning-parser=deepseek_r1"
+        {{- range $profile.args }}
+        - {{ . | quote }}
+        {{- end }}
       env:
         - name: MODEL_ID
           value: ""
@@ -50,15 +40,10 @@ spec:
           mountPath: /opt/workspace/middlewares
           readOnly: true
       resources:
-        limits:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
-        requests:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
+        {{- toYaml .Values.resources | nindent 8 }}
       ports:
         - containerPort: 8000
   volumes:
     - name: middleware-volume
       configMap:
-        name: vllm-middlewares
+        name: {{ .Release.Name }}-middlewares

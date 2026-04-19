@@ -1,10 +1,9 @@
-# -----------------------------
-# InferenceService (Qwen3 30B-A3B AWQ)
-# -----------------------------
+{{- $profile := index .Values.model.profile .Values.model.name }}
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
-  name: qwen3-30b
+  name: {{ .Values.model.name }}
+  namespace: {{ .Release.Namespace }}
 spec:
   predictor:
     deploymentStrategy:
@@ -19,16 +18,11 @@ spec:
     model:
       modelFormat:
         name: huggingface
-      runtime: vllm-qwen3-30b-runtime
+      runtime: {{ .Release.Name }}-runtime
       args:
-        - "--served-model-name=qwen3-30b"
+        - "--served-model-name={{ $profile.servedModelName }}"
       env:
         - name: MODEL_ID
-          value: "QuixiAI/Qwen3-30B-A3B-AWQ"
+          value: {{ $profile.modelId | quote }}
       resources:
-        limits:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
-        requests:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
+        {{- toYaml .Values.resources | nindent 8 }}

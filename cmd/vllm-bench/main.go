@@ -132,7 +132,9 @@ func findPod(ctx context.Context, namespace, selector string) (string, error) {
 			} `json:"metadata"`
 		} `json:"items"`
 	}
-	if err := json.Unmarshal(out, &list); err != nil {
+
+	err = json.Unmarshal(out, &list)
+	if err != nil {
 		return "", fmt.Errorf("parse pod list: %w", err)
 	}
 
@@ -160,6 +162,7 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 
 	// Monitor the command in a goroutine to catch unexpected exits
 	exitChan := make(chan error, 1)
+
 	go func() {
 		exitChan <- cmd.Wait()
 	}()
@@ -180,6 +183,7 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 				if err != nil {
 					return fmt.Errorf("port-forward process exited unexpectedly: %w", err)
 				}
+
 				return nil
 			case <-ctx.Done():
 				return fmt.Errorf("port-forward context error: %w", ctx.Err())
@@ -197,6 +201,7 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 
 	// Cleanup if timeout occurs
 	_ = cmd.Process.Kill()
+
 	return fmt.Errorf("port-forward timeout: %w", errPortForwardTimeout)
 }
 

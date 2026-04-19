@@ -1,0 +1,28 @@
+{{- $profile := index .Values.model.profile .Values.model.name }}
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  predictor:
+    deploymentStrategy:
+      type: Recreate
+    runtimeClassName: nvidia
+    nodeSelector:
+      feature.node.kubernetes.io/pci-10de.present: "true"
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+    model:
+      modelFormat:
+        name: huggingface
+      runtime: {{ .Release.Name }}-runtime
+      args:
+        - "--served-model-name={{ $profile.servedModelName }}"
+      env:
+        - name: MODEL_ID
+          value: {{ $profile.modelId | quote }}
+      resources:
+        {{- toYaml .Values.resources | nindent 8 }}

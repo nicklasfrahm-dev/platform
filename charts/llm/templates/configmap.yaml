@@ -1,0 +1,34 @@
+{{- $profile := index .Values.model.profile .Values.model.name }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-middlewares
+  namespace: {{ .Release.Namespace }}
+data:
+  backpressure.py: |
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import JSONResponse
+
+    MAX_CONCURRENT = {{ $profile.maxNumSeqs }}  # mirrors --max-num-seqs
+
+    class BackpressureMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            if (
+                "/v1/" in str(request.url)
+                and request.method not in ("GET", "OPTIONS", "HEAD")
+            ):
+                load = getattr(
+                    request.app.state, "server_load_metrics", 0
+                )
+                if load >= MAX_CONCURRENT:
+                    return JSONResponse(
+                        {
+                            "error": {
+                                "message": "Server overloaded — try again later.",
+                                "type": "server_error",
+                                "code": 503,
+                            }
+                        },
+                        status_code=503,
+                    )
+            return await call_next(request)

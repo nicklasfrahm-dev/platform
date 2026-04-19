@@ -1,0 +1,84 @@
+runtime:
+  vllm:
+    version: "v0.19.0"
+
+model:
+  name: qwen3-30b
+  profile:
+    gemma4:
+      # Stable: RTX 3090 (24GB)
+      modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
+      servedModelName: "gemma4-26b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=131072"
+        - "--quantization=compressed-tensors"
+        - "--tool-call-parser=gemma4"
+        - "--reasoning-parser=gemma4"
+      vllm:
+        version: "gemma4"
+    qwen35-27b:
+      modelId: "cyankiwi/Qwen3.5-27B-AWQ-4bit"
+      servedModelName: "qwen35-27b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=65536"
+        - "--kv-cache-dtype=fp8"
+        - "--quantization=awq_marlin"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+    qwen35-35b:
+      modelId: "Intel/Qwen3.5-35B-A3B-int4-AutoRound"
+      servedModelName: "qwen35-35b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=32768"
+        - "--kv-cache-dtype=fp8"
+        - "--quantization=compressed-tensors"
+        - "--language-model-only"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+    qwen36-35b:
+      modelId: "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit"
+      servedModelName: "qwen36-35b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=65536"
+        - "--kv-cache-dtype=fp8"
+        - "--quantization=compressed-tensors"
+        - "--language-model-only"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+    qwen3-30b:
+      modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"
+      servedModelName: "qwen3-30b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=40960"
+        - "--kv-cache-dtype=fp8"
+        - "--quantization=awq_marlin"
+        - "--tool-call-parser=hermes"
+        - "--reasoning-parser=deepseek_r1"
+    qwen25-coder-32b:
+      modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"
+      servedModelName: "qwen25-coder-32b"
+      maxNumSeqs: 1
+      args:
+        - "--max-model-len=40960"
+        - "--kv-cache-dtype=fp8"
+        - "--quantization=awq_marlin"
+        - "--tool-call-parser=hermes"
+
+resources:
+  limits:
+    nvidia.com/gpu: 1
+    memory: "12Gi"
+  requests:
+    nvidia.com/gpu: 1
+    memory: "12Gi"
+
+route:
+  hostname: "llm.cph02.nicklasfrahm.dev"
+  gateway:
+    name: shared-http
+    namespace: platform

@@ -1,9 +1,10 @@
 {{- $profile := index .Values.model.profile .Values.model.name }}
 {{- $version := (($profile).vllm).version | default .Values.runtime.vllm.version }}
 apiVersion: serving.kserve.io/v1alpha1
-kind: ClusterServingRuntime
+kind: ServingRuntime
 metadata:
   name: {{ .Release.Name }}-runtime
+  namespace: {{ .Release.Namespace }}
 spec:
   supportedModelFormats:
     - name: huggingface

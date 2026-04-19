@@ -15,5 +15,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: {{ .Values.model.name }}-predictor
+        - name: {{ .Release.Name }}-predictor
           port: 80

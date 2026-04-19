@@ -1,14 +1,14 @@
 # -----------------------------
-# ClusterServingRuntime (vLLM / Gemma 4)
-# Uses the dedicated gemma4 image that ships with transformers>=5.5.0
-# support for the gemma4 architecture (model_type: gemma4).
-# Backpressure middleware: returns HTTP 503 immediately when
-# server_load_metrics >= max_num_seqs, preventing queue build-up.
+# ClusterServingRuntime (vLLM / Qwen2.5-Coder 32B Instruct AWQ)
+# Dense 32B model; fp8 KV cache gives ~46K token pool on a 24 GB GPU.
+# Tool calling via hermes parser for agentic coding use cases.
+# Backpressure middleware: returns HTTP 503 when
+# server_load_metrics >= max_num_seqs.
 # -----------------------------
 apiVersion: serving.kserve.io/v1alpha1
 kind: ClusterServingRuntime
 metadata:
-  name: vllm-gemma4-runtime
+  name: vllm-qwen25-coder-32b-runtime
 spec:
   supportedModelFormats:
     - name: huggingface
@@ -16,22 +16,21 @@ spec:
       autoSelect: false
   containers:
     - name: kserve-container
-      image: vllm/vllm-openai:gemma4
+      image: vllm/vllm-openai:latest
       args:
         - "--model=$(MODEL_ID)"
         - "--tensor-parallel-size=1"
         - "--gpu-memory-utilization=0.95"
-        - "--max-model-len=131072"
+        - "--max-model-len=40960"
         - "--dtype=auto"
+        - "--kv-cache-dtype=fp8"
         - "--trust-remote-code"
-        - "--quantization=compressed-tensors"
-        - "--max-num-seqs=4"
+        - "--quantization=awq_marlin"
+        - "--max-num-seqs=1"
         - "--enable-server-load-tracking"
         - "--middleware=backpressure.BackpressureMiddleware"
         - "--enable-auto-tool-choice"
-        - "--tool-call-parser=gemma4"
-        - "--reasoning-parser=gemma4"
-        - "--chat-template=examples/tool_chat_template_gemma4.jinja"
+        - "--tool-call-parser=hermes"
       env:
         - name: MODEL_ID
           value: ""

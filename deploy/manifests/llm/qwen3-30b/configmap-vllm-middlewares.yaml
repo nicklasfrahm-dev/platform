@@ -8,7 +8,7 @@ data:
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import JSONResponse
 
-    MAX_CONCURRENT = 4  # mirrors --max-num-seqs
+    MAX_CONCURRENT = 1  # mirrors --max-num-seqs
 
     class BackpressureMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

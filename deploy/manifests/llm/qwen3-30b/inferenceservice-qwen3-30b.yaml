@@ -1,10 +1,10 @@
 # -----------------------------
-# InferenceService (Gemma 4 27B MoE)
+# InferenceService (Qwen3 30B-A3B AWQ)
 # -----------------------------
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
-  name: gemma4-moe
+  name: qwen3-30b
 spec:
   predictor:
     deploymentStrategy:
@@ -19,17 +19,12 @@ spec:
     model:
       modelFormat:
         name: huggingface
-      runtime: vllm-gemma4-runtime
+      runtime: vllm-qwen3-30b-runtime
       args:
-        - "--served-model-name=gemma4-26b-a4b-it"
+        - "--served-model-name=qwen3-30b"
       env:
         - name: MODEL_ID
-          value: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
-        # BELOW MODELS: GPU TOO SMALL FOR KV CACHE.
-        # - name: MODEL_ID
-        #   value: "Intel/gemma-4-31B-it-int4-AutoRound"
-        # - name: MODEL_ID
-        #   value: "Intel/gemma-4-26B-A4B-it-int4-mixed-AutoRound"
+          value: "QuixiAI/Qwen3-30B-A3B-AWQ"
       resources:
         limits:
           nvidia.com/gpu: 1

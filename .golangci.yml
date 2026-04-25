@@ -18,13 +18,14 @@ linters:
       case:
         rules:
           json: camel
-        overrides:
-          - pkg: cmd/vllm-bench/openai\.go
-            rules:
-              json: snake
     testpackage:
       allow-packages:
         - main
+  exclusions:
+    rules:
+      - path: cmd/vllm-bench/openai\.go
+        linters:
+          - tagliatelle
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

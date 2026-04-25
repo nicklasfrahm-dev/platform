@@ -153,7 +153,7 @@ func findPod(ctx context.Context, namespace, selector string) (string, error) {
 		Items []struct {
 			Metadata struct {
 				Name              string `json:"name"`
-				DeletionTimestamp string `json:"deletionTimestamp"` //nolint:tagliatelle // Kubernetes API uses camelCase
+				DeletionTimestamp string `json:"deletionTimestamp"`
 			} `json:"metadata"`
 		} `json:"items"`
 	}

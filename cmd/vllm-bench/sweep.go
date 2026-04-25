@@ -47,18 +47,18 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 			break
 		}
 
-		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
+		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ...\n", target/tokensPerK)
 
 		sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target)
 		if !ok {
-			_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
+			_, _ = fmt.Fprintln(os.Stdout, "  all requests failed, skipping")
 
 			continue
 		}
 
 		results = append(results, sweepPoint)
 		_, _ = fmt.Fprintf(os.Stdout,
-			"prompt=%d  lat min=%s avg=%s max=%s  tok/s min=%.1f avg=%.1f max=%.1f\n",
+			"  prompt=%d\n  lat min=%s avg=%s max=%s\n  tok/s min=%.1f avg=%.1f max=%.1f\n",
 			sweepPoint.promptTokens,
 			sweepPoint.minLatency.Round(time.Millisecond),
 			sweepPoint.avgLatency.Round(time.Millisecond),

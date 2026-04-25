@@ -14,6 +14,14 @@ linters:
     - wsl
 
   settings:
+    tagliatelle:
+      case:
+        rules:
+          json: camel
+        overrides:
+          - path: cmd/vllm-bench/openai\.go
+            rules:
+              json: snake
     testpackage:
       allow-packages:
         - main

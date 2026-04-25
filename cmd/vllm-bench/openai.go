@@ -16,7 +16,7 @@ var errUnexpectedStatus = errors.New("unexpected HTTP status")
 type chatRequest struct {
 	Model     string        `json:"model"`
 	Messages  []chatMessage `json:"messages"`
-	MaxTokens int           `json:"maxTokens"`
+	MaxTokens int           `json:"max_tokens"`
 	Stream    bool          `json:"stream"`
 }
 
@@ -27,8 +27,8 @@ type chatMessage struct {
 
 type chatResponse struct {
 	Usage struct {
-		PromptTokens     int `json:"promptTokens"`
-		CompletionTokens int `json:"completionTokens"`
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
 	} `json:"usage"`
 }
 

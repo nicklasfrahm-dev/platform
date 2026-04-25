@@ -8,8 +8,8 @@ const (
 	defaultMaxTokens    = 512
 	defaultMaxQueue     = 3
 	defaultPort         = 18000
-	defaultSweepReqs    = 3
-	defaultSweepOutToks = 64
+	defaultSweepReqs    = 20
+	defaultSweepOutToks = 128
 
 	// Timing constants.
 	tickInterval    = 5 * time.Second
@@ -23,6 +23,10 @@ const (
 	minChartWidth   = 60
 	chartHeight     = 10
 	yAxisPadding    = 2
+
+	// Math constants.
+	halfDivisor  = 2
+	roundingHalf = 0.5
 
 	// Parsing constants.
 	minPrometheusFields = 2

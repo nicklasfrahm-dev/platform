@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -14,7 +15,12 @@ type sweepPoint struct {
 	targetTokens     int
 	promptTokens     int
 	completionTokens int
-	latency          time.Duration
+	avgLatency       time.Duration
+	minLatency       time.Duration
+	maxLatency       time.Duration
+	avgTokPerSec     float64
+	minTokPerSec     float64
+	maxTokPerSec     float64
 }
 
 func parseSweepSizes(s string) []int {
@@ -41,20 +47,25 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 			break
 		}
 
-	_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
+		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ... ", target/tokensPerK)
 
-	sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target)
-	if !ok {
-		_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
+		sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target)
+		if !ok {
+			_, _ = fmt.Fprintln(os.Stdout, "all requests failed, skipping")
 
-		continue
-	}
+			continue
+		}
 
 		results = append(results, sweepPoint)
-		_, _ = fmt.Fprintf(os.Stdout, "prompt=%d  lat=%s  tok/s=%.1f\n",
+		_, _ = fmt.Fprintf(os.Stdout,
+			"prompt=%d  lat min=%s avg=%s max=%s  tok/s min=%.1f avg=%.1f max=%.1f\n",
 			sweepPoint.promptTokens,
-			sweepPoint.latency.Round(time.Millisecond),
-			float64(sweepPoint.completionTokens)/sweepPoint.latency.Seconds(),
+			sweepPoint.minLatency.Round(time.Millisecond),
+			sweepPoint.avgLatency.Round(time.Millisecond),
+			sweepPoint.maxLatency.Round(time.Millisecond),
+			sweepPoint.minTokPerSec,
+			sweepPoint.avgTokPerSec,
+			sweepPoint.maxTokPerSec,
 		)
 	}
 
@@ -70,9 +81,16 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target int) (sweepPoint, bool) {
 	prompt := paddedPrompt(target)
 
-	var totalLat time.Duration
-
-	var totalPrompt, totalCompletion, succeeded int
+	var (
+		totalLat        time.Duration
+		minLat          = time.Duration(math.MaxInt64)
+		maxLat          time.Duration
+		totalPrompt     int
+		totalCompletion int
+		succeeded       int
+		minTok          = math.MaxFloat64
+		maxTok          float64
+	)
 
 	for sweepIdx := range cfg.sweepReqs {
 		if ctx.Err() != nil {
@@ -88,6 +106,24 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 			continue
 		}
 
+		tok := float64(result.completionTokens) / result.latency.Seconds()
+
+		if result.latency < minLat {
+			minLat = result.latency
+		}
+
+		if result.latency > maxLat {
+			maxLat = result.latency
+		}
+
+		if tok < minTok {
+			minTok = tok
+		}
+
+		if tok > maxTok {
+			maxTok = tok
+		}
+
 		totalLat += result.latency
 		totalPrompt += result.promptTokens
 		totalCompletion += result.completionTokens
@@ -98,17 +134,33 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 		return sweepPoint{}, false
 	}
 
+	return buildSweepPoint(target, totalPrompt, totalCompletion, succeeded, totalLat, minLat, maxLat, minTok, maxTok), true
+}
+
+func buildSweepPoint(
+	target, totalPrompt, totalCompletion, succeeded int,
+	totalLat, minLat, maxLat time.Duration,
+	minTok, maxTok float64,
+) sweepPoint {
+	avgLat := totalLat / time.Duration(succeeded)
+	avgCompletion := totalCompletion / succeeded
+
 	return sweepPoint{
 		targetTokens:     target,
 		promptTokens:     totalPrompt / succeeded,
-		completionTokens: totalCompletion / succeeded,
-		latency:          totalLat / time.Duration(succeeded),
-	}, true
+		completionTokens: avgCompletion,
+		avgLatency:       avgLat,
+		minLatency:       minLat,
+		maxLatency:       maxLat,
+		avgTokPerSec:     float64(avgCompletion) / avgLat.Seconds(),
+		minTokPerSec:     minTok,
+		maxTokPerSec:     maxTok,
+	}
 }
 
 // waitForCapacity blocks until vLLM's waiting queue has room or the context is cancelled.
 func waitForCapacity(ctx context.Context, baseURL string, cfg config) {
-	waitLoop:
+waitLoop:
 	for {
 		snap, err := scrapeMetrics(baseURL + "/metrics")
 		if err != nil || snap.waiting < float64(cfg.maxQueue) {
@@ -124,9 +176,14 @@ func waitForCapacity(ctx context.Context, baseURL string, cfg config) {
 }
 
 func printSweepCharts(results []sweepPoint) {
-	labels := make([]string, len(results))
-	latencies := make([]float64, len(results))
-	throughputs := make([]float64, len(results))
+	numResults := len(results)
+	labels := make([]string, numResults)
+	minLat := make([]float64, numResults)
+	avgLat := make([]float64, numResults)
+	maxLat := make([]float64, numResults)
+	minTok := make([]float64, numResults)
+	avgTok := make([]float64, numResults)
+	maxTok := make([]float64, numResults)
 
 	for idx, result := range results {
 		k := result.promptTokens / tokensPerK
@@ -136,14 +193,18 @@ func printSweepCharts(results []sweepPoint) {
 			labels[idx] = fmt.Sprintf("%dk", k)
 		}
 
-		latencies[idx] = result.latency.Seconds()
-		throughputs[idx] = float64(result.completionTokens) / result.latency.Seconds()
+		minLat[idx] = result.minLatency.Seconds()
+		avgLat[idx] = result.avgLatency.Seconds()
+		maxLat[idx] = result.maxLatency.Seconds()
+		minTok[idx] = result.minTokPerSec
+		avgTok[idx] = result.avgTokPerSec
+		maxTok[idx] = result.maxTokPerSec
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout)
-	_, _ = fmt.Fprintln(os.Stdout, lineChart("Context window vs latency (s)", labels, latencies, "s"))
+	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs latency (s)", labels, minLat, avgLat, maxLat))
 	_, _ = fmt.Fprintln(os.Stdout)
-	_, _ = fmt.Fprintln(os.Stdout, lineChart("Context window vs throughput (tok/s)", labels, throughputs, "tok/s"))
+	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs throughput (tok/s)", labels, minTok, avgTok, maxTok))
 }
 
 // paddedPrompt returns a prompt whose token count is approximately targetTokens.

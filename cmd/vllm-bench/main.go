@@ -153,7 +153,7 @@ func findPod(ctx context.Context, namespace, selector string) (string, error) {
 		Items []struct {
 			Metadata struct {
 				Name              string `json:"name"`
-				DeletionTimestamp string `json:"deletionTimestamp"`
+				DeletionTimestamp string `json:"deletionTimestamp"` //nolint:tagliatelle // Kubernetes API uses camelCase
 			} `json:"metadata"`
 		} `json:"items"`
 	}
@@ -178,7 +178,7 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 		"-n", namespace, "pod/"+pod,
 		fmt.Sprintf("%d:8000", localPort),
 	)
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = nil
 
 	err := cmd.Start()
 	if err != nil {
@@ -202,17 +202,7 @@ func startPortForward(ctx context.Context, namespace, pod string, localPort int)
 
 			_, _ = fmt.Fprintf(os.Stdout, "port-forward ready on localhost:%d\n\n", localPort)
 
-			// Wait for command to fail or context to be cancelled.
-			select {
-			case err := <-exitChan:
-				if err != nil {
-					return fmt.Errorf("port-forward process exited unexpectedly: %w", err)
-				}
-
-				return nil
-			case <-ctx.Done():
-				return fmt.Errorf("port-forward context error: %w", ctx.Err())
-			}
+			return nil
 		}
 
 		select {

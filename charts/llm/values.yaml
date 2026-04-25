@@ -2,6 +2,21 @@ runtime:
   vllm:
     version: "v0.19.0"
 
+gpu:
+  name: rtx3090
+  profile:
+    rtx3090:
+      maxNumSeqs: 1
+      gpuMemoryUtilization: 0.95
+      tensorParallelSize: 1
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+        requests:
+          nvidia.com/gpu: 1
+          memory: "12Gi"
+
 model:
   name: qwen3-30b
   profile:
@@ -9,31 +24,34 @@ model:
       # Stable: RTX 3090 (24GB)
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
-      maxNumSeqs: 1
       args:
-        - "--max-model-len=131072"
+        - "--max-model-len=65536"
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=gemma4"
         - "--reasoning-parser=gemma4"
       vllm:
         version: "gemma4"
+    qwen3-coder-30b:
+      modelId: "cyankiwi/Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit"
+      servedModelName: "qwen3-coder-30b"
+      args:
+        - "--max-model-len=65536"
+        - "--quantization=compressed-tensors"
+        - "--tool-call-parser=qwen3_coder"
+        - "--reasoning-parser=qwen3"
     qwen35-27b:
       modelId: "cyankiwi/Qwen3.5-27B-AWQ-4bit"
       servedModelName: "qwen35-27b"
-      maxNumSeqs: 1
       args:
         - "--max-model-len=65536"
-        - "--kv-cache-dtype=fp8"
         - "--quantization=awq_marlin"
         - "--reasoning-parser=qwen3"
         - "--tool-call-parser=qwen3_coder"
     qwen35-35b:
       modelId: "Intel/Qwen3.5-35B-A3B-int4-AutoRound"
       servedModelName: "qwen35-35b"
-      maxNumSeqs: 1
       args:
         - "--max-model-len=32768"
-        - "--kv-cache-dtype=fp8"
         - "--quantization=compressed-tensors"
         - "--language-model-only"
         - "--reasoning-parser=qwen3"
@@ -41,10 +59,8 @@ model:
     qwen36-35b:
       modelId: "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit"
       servedModelName: "qwen36-35b"
-      maxNumSeqs: 1
       args:
         - "--max-model-len=65536"
-        - "--kv-cache-dtype=fp8"
         - "--quantization=compressed-tensors"
         - "--language-model-only"
         - "--reasoning-parser=qwen3"
@@ -52,30 +68,18 @@ model:
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"
       servedModelName: "qwen3-30b"
-      maxNumSeqs: 1
       args:
         - "--max-model-len=40960"
-        - "--kv-cache-dtype=fp8"
         - "--quantization=awq_marlin"
         - "--tool-call-parser=hermes"
         - "--reasoning-parser=deepseek_r1"
     qwen25-coder-32b:
       modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"
       servedModelName: "qwen25-coder-32b"
-      maxNumSeqs: 1
       args:
         - "--max-model-len=40960"
-        - "--kv-cache-dtype=fp8"
         - "--quantization=awq_marlin"
         - "--tool-call-parser=hermes"
-
-resources:
-  limits:
-    nvidia.com/gpu: 1
-    memory: "12Gi"
-  requests:
-    nvidia.com/gpu: 1
-    memory: "12Gi"
 
 route:
   hostname: "llm.cph02.nicklasfrahm.dev"

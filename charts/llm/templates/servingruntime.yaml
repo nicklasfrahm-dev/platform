@@ -1,5 +1,6 @@
-{{- $profile := index .Values.model.profile .Values.model.name }}
-{{- $version := (($profile).vllm).version | default .Values.runtime.vllm.version }}
+{{- $model := index .Values.model.profile .Values.model.name }}
+{{- $gpu := index .Values.gpu.profile .Values.gpu.name }}
+{{- $version := (($model).vllm).version | default .Values.runtime.vllm.version }}
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
@@ -14,18 +15,18 @@ spec:
     - name: kserve-container
       image: vllm/vllm-openai:{{ $version }}
       args:
-        - "--model=$(MODEL_ID)"
-        - "--tensor-parallel-size=1"
-        - "--gpu-memory-utilization=0.95"
+        - "$(MODEL_ID)"
+        - "--tensor-parallel-size={{ $gpu.tensorParallelSize }}"
+        - "--gpu-memory-utilization={{ $gpu.gpuMemoryUtilization }}"
         - "--dtype=auto"
+        {{- if $gpu.kvCacheDtype }}
+        - "--kv-cache-dtype={{ $gpu.kvCacheDtype }}"
+        {{- end }}
         - "--trust-remote-code"
-        - "--max-num-seqs={{ $profile.maxNumSeqs }}"
+        - "--max-num-seqs={{ $model.maxNumSeqs | default $gpu.maxNumSeqs }}"
         - "--enable-server-load-tracking"
         - "--middleware=backpressure.BackpressureMiddleware"
         - "--enable-auto-tool-choice"
-        {{- range $profile.args }}
-        - {{ . | quote }}
-        {{- end }}
       env:
         - name: MODEL_ID
           value: ""
@@ -41,7 +42,7 @@ spec:
           mountPath: /opt/workspace/middlewares
           readOnly: true
       resources:
-        {{- toYaml .Values.resources | nindent 8 }}
+        {{- toYaml $gpu.resources | nindent 8 }}
       ports:
         - containerPort: 8000
   volumes:

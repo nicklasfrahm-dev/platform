@@ -14,9 +14,18 @@ linters:
     - wsl
 
   settings:
+    tagliatelle:
+      case:
+        rules:
+          json: camel
     testpackage:
       allow-packages:
         - main
+  exclusions:
+    rules:
+      - path: cmd/vllm-bench/openai\.go
+        linters:
+          - tagliatelle
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

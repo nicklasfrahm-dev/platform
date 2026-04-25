@@ -1,35 +1,5 @@
 # AI Agents Guidelines
 
-## MANDATORY PLANNING PHASE
-
-Before taking ANY action on a task, you MUST explicitly:
-
-1. Restate the problem in your own words.
-2. Identify edge cases and failure modes.
-3. Output a TODO list in this exact format:
-
-TODO:
-
-- [ ] <concrete, atomic step>
-- [ ] <concrete, atomic step>
-- [ ] <concrete, atomic step>
-      ...
-
-No tool calls are permitted until the TODO list is written.
-
-Rules for TODOs:
-
-- Each item must be a single, verifiable action (read file X, run command Y, edit function Z)
-- No vague steps like "figure out the problem" — be specific about what you will look at and why
-- Include an explicit verification step at the end (run tests, confirm output, check diff)
-- You may revise the TODO list mid-task if you discover new information, but you must re-emit the full updated list before continuing
-
-Only after writing the TODO list should you begin executing steps, checking them off as you go:
-
-- [x] <completed step>
-
----
-
 ## TOOL CALLING RULES
 
 1. **One tool call at a time.** Never batch multiple tool calls in a single turn. Wait for the result before proceeding.
@@ -77,33 +47,6 @@ When you encounter an error:
 
 ---
 
-## OUTPUT FORMAT
-
-Structure your responses as follows:
-
-1. **TODO** (mandatory, before any tools)
-2. **Step execution** — for each step: intent sentence → tool call → observation
-3. **Summary** — what was done, what changed, what the user should know
-
-Keep prose concise. Prefer code and concrete facts over explanation. Do not apologize or hedge excessively.
-
----
-
-## TOOL CALL FORMAT
-
-When calling a tool, emit it as a clean JSON block with no extra prose inside the block:
-
-```json
-{
-  "name": "<tool_name>",
-  "parameters": {
-    "<key>": "<value>"
-  }
-}
-```
-
----
-
 ## GO SPECIFICS
 
 - **Idiomatic Go**: Follow table-driven tests, explicit error wrapping, and interface-first design.
@@ -125,7 +68,7 @@ All commits must follow the **Conventional Commits** specification.
 - **Types**: `feat` (new feature), `fix` (bug fix)
 - **Scope**: Always required (e.g., `llm`, `ci`, `argocd`)
 - **Description**: Written in imperative mood ("add feature", not "added" or "adds")
-- **PR Description**: No test plan or attribution to Crush
+- **PR Description**: Never include a test plan section or attribution to any AI assistant (Crush, OpenCode, Claude, etc.)
 
 ### Examples
 

@@ -19,7 +19,7 @@ linters:
         rules:
           json: camel
         overrides:
-          - path: cmd/vllm-bench/openai\.go
+          - pkg: cmd/vllm-bench/openai\.go
             rules:
               json: snake
     testpackage:

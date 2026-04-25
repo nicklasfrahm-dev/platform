@@ -1,4 +1,5 @@
-{{- $profile := index .Values.model.profile .Values.model.name }}
+{{- $model := index .Values.model.profile .Values.model.name }}
+{{- $gpu := index .Values.gpu.profile .Values.gpu.name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,7 +10,7 @@ data:
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import JSONResponse
 
-    MAX_CONCURRENT = {{ $profile.maxNumSeqs }}  # mirrors --max-num-seqs
+    MAX_CONCURRENT = {{ $model.maxNumSeqs | default $gpu.maxNumSeqs }}  # mirrors --max-num-seqs
 
     class BackpressureMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

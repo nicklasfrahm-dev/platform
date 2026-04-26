@@ -1,4 +1,5 @@
-{{- $profile := index .Values.model.profile .Values.model.name }}
+{{- $model := index .Values.model.profile .Values.model.name }}
+{{- $gpu := index .Values.gpu.profile .Values.gpu.name }}
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
@@ -20,9 +21,12 @@ spec:
         name: huggingface
       runtime: {{ .Release.Name }}-runtime
       args:
-        - "--served-model-name={{ $profile.servedModelName }}"
+        - "--served-model-name={{ $model.servedModelName }}"
+        {{- range $model.args }}
+        - {{ . | quote }}
+        {{- end }}
       env:
         - name: MODEL_ID
-          value: {{ $profile.modelId | quote }}
+          value: {{ $model.modelId | quote }}
       resources:
-        {{- toYaml .Values.resources | nindent 8 }}
+        {{- toYaml $gpu.resources | nindent 8 }}

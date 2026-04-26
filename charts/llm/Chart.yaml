@@ -2,4 +2,4 @@ apiVersion: v2
 type: application
 name: llm
 description: A Helm chart for deploying a large language model via vLLM on KServe.
-version: 0.1.0
+version: 0.2.0

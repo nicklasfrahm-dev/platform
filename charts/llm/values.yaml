@@ -39,6 +39,13 @@ model:
         - "--max-model-len=51200"
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=qwen3_coder"
+    qwen25-coder-32b-instruct:
+      modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"
+      servedModelName: "qwen25-coder-32b-instruct"
+      args:
+        - "--max-model-len=40960"
+        - "--quantization=awq_marlin"
+        - "--tool-call-parser=hermes"
     qwen35-27b:
       modelId: "cyankiwi/Qwen3.5-27B-AWQ-4bit"
       servedModelName: "qwen35-27b"

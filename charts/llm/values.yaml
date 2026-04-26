@@ -20,8 +20,8 @@ gpu:
 model:
   name: qwen3-30b
   profile:
+    # Stable: RTX 3090 (24GB)
     gemma4:
-      # Stable: RTX 3090 (24GB)
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
       args:
@@ -31,14 +31,14 @@ model:
         - "--reasoning-parser=gemma4"
       vllm:
         version: "gemma4"
+    # Stable: RTX 3090 (24GB)
     qwen3-coder-30b:
       modelId: "cyankiwi/Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit"
       servedModelName: "qwen3-coder-30b"
       args:
-        - "--max-model-len=65536"
+        - "--max-model-len=51200"
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=qwen3_coder"
-        - "--reasoning-parser=qwen3"
     qwen35-27b:
       modelId: "cyankiwi/Qwen3.5-27B-AWQ-4bit"
       servedModelName: "qwen35-27b"

@@ -80,6 +80,13 @@ model:
         - "--max-model-len=40960"
         - "--quantization=awq_marlin"
         - "--tool-call-parser=hermes"
+    qwen25-coder-32b-instruct:
+      modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"
+      servedModelName: "qwen25-coder-32b-instruct"
+      args:
+        - "--max-model-len=40960"
+        - "--quantization=awq_marlin"
+        - "--tool-call-parser=hermes"
 
 route:
   hostname: "llm.cph02.nicklasfrahm.dev"

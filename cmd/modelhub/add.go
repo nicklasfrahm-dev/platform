@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +33,8 @@ func runAdd(ctx context.Context, cfg *globalConfig, hfRepo string) error {
 	}
 
 	s3Client := newS3Client(cfg.endpoint, creds.accessKey, creds.secretKey)
-	uploader := manager.NewUploader(s3Client)
+
+	// Use the newer S3 client PutObject directly instead of deprecated Uploader
 
 	name := modelName(hfRepo)
 
@@ -43,50 +43,46 @@ func runAdd(ctx context.Context, cfg *globalConfig, hfRepo string) error {
 		return fmt.Errorf("determine next version: %w", err)
 	}
 
-	fmt.Printf("==> Importing %s as %s/%s\n", hfRepo, name, version)
-
 	files, err := hfListFiles(ctx, creds.hfToken, hfRepo)
 	if err != nil {
 		return fmt.Errorf("list HuggingFace files: %w", err)
 	}
 
-	fmt.Printf("    Found %d files.\n", len(files))
-
 	for _, file := range files {
-		if err := uploadFile(ctx, uploader, creds, name, version, hfRepo, file); err != nil {
+		err = uploadFile(ctx, s3Client, creds, name, version, hfRepo, file)
+		if err != nil {
 			return err
 		}
 	}
-
-	fmt.Printf("==> Done: %s → s3://%s/%s/%s/\n", hfRepo, creds.bucketName, name, version)
 
 	return nil
 }
 
 func uploadFile(
 	ctx context.Context,
-	uploader *manager.Uploader,
+	s3Client *s3.Client,
 	creds *clusterCreds,
 	name, version, hfRepo, file string,
 ) error {
-	fmt.Printf("  -> %s\n", file)
-
 	body, err := hfOpenFile(ctx, creds.hfToken, hfRepo, file)
 	if err != nil {
 		return fmt.Errorf("open %s: %w", file, err)
 	}
 
-	defer body.Close()
-
 	key := fmt.Sprintf("%s/%s/%s", name, version, file)
 
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(creds.bucketName),
 		Key:    aws.String(key),
 		Body:   body,
 	})
 	if err != nil {
 		return fmt.Errorf("upload %s: %w", file, err)
+	}
+
+	err = body.Close()
+	if err != nil {
+		return fmt.Errorf("close %s: %w", file, err)
 	}
 
 	return nil

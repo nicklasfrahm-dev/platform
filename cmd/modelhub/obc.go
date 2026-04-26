@@ -21,6 +21,9 @@ spec:
   storageClassName: ceph-bucket
 `
 
+const obcTimeoutSeconds = 150
+const obcWaitIntervalSeconds = 5
+
 // clusterCreds holds the S3 and HuggingFace secrets extracted from Kubernetes.
 type clusterCreds struct {
 	bucketName string
@@ -36,18 +39,16 @@ var errOBCTimeout = errors.New("OBC did not become Bound within 150s")
 func ensureOBC(ctx context.Context, cfg *globalConfig) (*clusterCreds, error) {
 	manifest := fmt.Sprintf(bucketManifestTpl, cfg.namespace)
 
-	fmt.Println("==> Applying ObjectBucketClaim...")
-
 	applyCmd := kubectl(ctx, cfg, "apply", "-f", "-")
 	applyCmd.Stdin = bytes.NewBufferString(manifest)
 
-	if out, err := applyCmd.CombinedOutput(); err != nil {
+	out, err := applyCmd.CombinedOutput()
+	if err != nil {
 		return nil, fmt.Errorf("apply OBC: %w\n%s", err, out)
 	}
 
-	fmt.Println("==> Waiting for OBC to be Bound...")
-
-	if err := waitForOBCBound(ctx, cfg); err != nil {
+	err = waitForOBCBound(ctx, cfg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -55,7 +56,7 @@ func ensureOBC(ctx context.Context, cfg *globalConfig) (*clusterCreds, error) {
 }
 
 func waitForOBCBound(ctx context.Context, cfg *globalConfig) error {
-	deadline := time.Now().Add(150 * time.Second)
+	deadline := time.Now().Add(obcTimeoutSeconds * time.Second)
 
 	for {
 		out, err := kubectl(ctx, cfg,
@@ -65,8 +66,6 @@ func waitForOBCBound(ctx context.Context, cfg *globalConfig) error {
 		).Output()
 
 		if err == nil && string(out) == "Bound" {
-			fmt.Println("    OBC is Bound.")
-
 			return nil
 		}
 
@@ -79,20 +78,16 @@ func waitForOBCBound(ctx context.Context, cfg *globalConfig) error {
 			return fmt.Errorf("%w (last phase: %s)", errOBCTimeout, phase)
 		}
 
-		fmt.Printf("    Phase: %s...\n", phase)
-
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled waiting for OBC: %w", ctx.Err())
-		case <-time.After(5 * time.Second):
+		case <-time.After(obcWaitIntervalSeconds * time.Second):
 		}
 	}
 }
 
 // loadCredentials extracts bucket name, S3 keys, and HF token from the cluster.
 func loadCredentials(ctx context.Context, cfg *globalConfig) (*clusterCreds, error) {
-	fmt.Println("==> Extracting S3 credentials...")
-
 	bucketName, err := kubectlField(ctx, cfg, "configmap", "models", "data.BUCKET_NAME")
 	if err != nil {
 		return nil, fmt.Errorf("get bucket name: %w", err)
@@ -113,8 +108,6 @@ func loadCredentials(ctx context.Context, cfg *globalConfig) (*clusterCreds, err
 		return nil, fmt.Errorf("get HF token: %w", err)
 	}
 
-	fmt.Printf("    Bucket: %s\n", bucketName)
-
 	return &clusterCreds{
 		bucketName: bucketName,
 		accessKey:  accessKey,
@@ -124,9 +117,10 @@ func loadCredentials(ctx context.Context, cfg *globalConfig) (*clusterCreds, err
 }
 
 func kubectl(ctx context.Context, cfg *globalConfig, args ...string) *exec.Cmd {
-	fullArgs := append([]string{"--context", cfg.kubeContext}, args...) //nolint:gocritic
-
-	return exec.CommandContext(ctx, "kubectl", fullArgs...) //nolint:gosec
+	fullArgs := append([]string{"--context", cfg.kubeContext}, args...)
+	
+	// #nosec G204 - These arguments are controlled by the program and are not user-provided
+	return exec.CommandContext(ctx, "kubectl", fullArgs...)
 }
 
 func kubectlField(ctx context.Context, cfg *globalConfig, resource, name, jsonpath string) (string, error) {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,9 +17,11 @@ type hfModelMeta struct {
 	Siblings []hfFileMeta `json:"siblings"`
 }
 
+var errHFStatus = errors.New("HuggingFace API returned unexpected status")
+
 // hfListFiles returns the list of files in a HuggingFace model repository.
 func hfListFiles(ctx context.Context, token, repo string) ([]string, error) {
-	url := fmt.Sprintf("https://huggingface.co/api/models/%s", repo)
+	url := "https://huggingface.co/api/models/" + repo
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -32,14 +35,18 @@ func hfListFiles(ctx context.Context, token, repo string) ([]string, error) {
 		return nil, fmt.Errorf("fetch model metadata: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HuggingFace API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("%w: %d", errHFStatus, resp.StatusCode)
 	}
 
 	var meta hfModelMeta
-	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
+
+	err = json.NewDecoder(resp.Body).Decode(&meta)
+	if err != nil {
 		return nil, fmt.Errorf("decode model metadata: %w", err)
 	}
 
@@ -54,7 +61,7 @@ func hfListFiles(ctx context.Context, token, repo string) ([]string, error) {
 // hfOpenFile opens a file from a HuggingFace repository for streaming download.
 // The caller is responsible for closing the returned ReadCloser.
 func hfOpenFile(ctx context.Context, token, repo, file string) (io.ReadCloser, error) {
-	url := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", repo, file)
+	url := "https://huggingface.co/" + repo + "/resolve/main/" + file
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -71,7 +78,7 @@ func hfOpenFile(ctx context.Context, token, repo, file string) (io.ReadCloser, e
 	if resp.StatusCode != http.StatusOK {
 		_ = resp.Body.Close()
 
-		return nil, fmt.Errorf("HuggingFace returned status %d for %s", resp.StatusCode, file)
+		return nil, fmt.Errorf("%w: %d for %s", errHFStatus, resp.StatusCode, file)
 	}
 
 	return resp.Body, nil

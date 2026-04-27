@@ -42,6 +42,15 @@ model:
         - "--reasoning-parser=gemma4"
       vllm:
         version: "gemma4"
+    # TESTING: RTX 3090 (24GB)
+    devstral-small:
+      modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"
+      servedModelName: "devstral-small"
+      args:
+        - "--max-model-len=50176"
+        - "--quantization=awq_marlin"
+        - "--tokenizer-mode=mistral"
+        - "--tool-call-parser=mistral"
     # Stable: RTX 3090 (24GB)
     qwen3-coder-30b:
       modelId: "cyankiwi/Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit"

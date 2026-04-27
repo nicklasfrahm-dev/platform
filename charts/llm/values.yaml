@@ -56,7 +56,7 @@ model:
       modelId: "cyankiwi/GLM-4.7-Flash-AWQ-4bit"
       servedModelName: "glm-4.7-flash"
       args:
-        - "--max-model-len=65536"
+        - "--max-model-len=64480"
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=glm47"
         - "--reasoning-parser=glm45"

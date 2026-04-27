@@ -42,7 +42,7 @@ model:
         - "--reasoning-parser=gemma4"
       vllm:
         version: "gemma4"
-    # TESTING: RTX 3090 (24GB)
+    # Stable: RTX 3090 (24GB)
     devstral-small:
       modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"
       servedModelName: "devstral-small"

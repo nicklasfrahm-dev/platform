@@ -31,17 +31,6 @@ model:
         - "--reasoning-parser=gemma4"
       vllm:
         version: "gemma4"
-    # Unstable: RTX 3090 (24GB), no room for KV cache.
-    gemma4-31b:
-      modelId: "cyankiwi/gemma-4-31B-it-AWQ-4bit"
-      servedModelName: "gemma4-31b"
-      args:
-        - "--max-model-len=65536"
-        - "--quantization=compressed-tensors"
-        - "--tool-call-parser=gemma4"
-        - "--reasoning-parser=gemma4"
-      vllm:
-        version: "gemma4"
     # Stable: RTX 3090 (24GB)
     devstral-small:
       modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"

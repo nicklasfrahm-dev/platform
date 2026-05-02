@@ -31,6 +31,7 @@ model:
         - "--max-num-batched-tokens=4096"
         - "--chat-template=examples/tool_chat_template_gemma4.jinja"
         - "--default-chat-template-kwargs={\"enable_thinking\": true}"
+        - "--quantization=compressed-tensors"
         - "--limit-mm-per-prompt={\"image\": 0, \"video\": 0}"
     # Stable: RTX 3090 (24GB)
     devstral-small:

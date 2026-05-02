@@ -1,6 +1,6 @@
 runtime:
   vllm:
-    version: "v0.19.0"
+    version: "v0.20.0"
 
 gpu:
   name: rtx3090
@@ -18,19 +18,21 @@ gpu:
           memory: "12Gi"
 
 model:
-  name: qwen3-coder-30b
+  name: gemma4-26b
   profile:
     # Stable: RTX 3090 (24GB)
     gemma4-26b:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
       args:
-        - "--max-model-len=65536"
-        - "--quantization=compressed-tensors"
+        - "--max-model-len=131072"
         - "--tool-call-parser=gemma4"
         - "--reasoning-parser=gemma4"
-      vllm:
-        version: "gemma4"
+        - "--max-num-batched-tokens=4096"
+        - "--chat-template=examples/tool_chat_template_gemma4.jinja"
+        - "--default-chat-template-kwargs={\"enable_thinking\": true}"
+        - "--quantization=compressed-tensors"
+        - "--limit-mm-per-prompt={\"image\": 0, \"video\": 0}"
     # Stable: RTX 3090 (24GB)
     devstral-small:
       modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"

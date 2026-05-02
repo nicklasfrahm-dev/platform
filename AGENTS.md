@@ -68,7 +68,7 @@ All commits must follow the **Conventional Commits** specification.
 - **Types**: `feat` (new feature), `fix` (bug fix)
 - **Scope**: Always required (e.g., `llm`, `ci`, `argocd`)
 - **Description**: Written in imperative mood ("add feature", not "added" or "adds")
-- **PR Description**: Never include a test plan section or attribution to any AI assistant (Crush, OpenCode, Claude, etc.)
+- **PR Description**: Never include a test plan section, attribution to any AI assistant (Crush, OpenCode, Claude, etc.), or any other extra sections.
 
 ### Examples
 

@@ -31,7 +31,7 @@ model:
         - "--max-num-batched-tokens=4096"
         - "--chat-template=examples/tool_chat_template_gemma4.jinja"
         - "--default-chat-template-kwargs={\"enable_thinking\": true}"
-        - "--limit-mm-per-prompt={\"image\": 0}"
+        - "--limit-mm-per-prompt={\"image\": 0, \"video\": 0}"
     # Stable: RTX 3090 (24GB)
     devstral-small:
       modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"

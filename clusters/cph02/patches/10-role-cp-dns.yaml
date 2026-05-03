@@ -1,0 +1,8 @@
+machine:
+  # The controlplane.yaml template uses the default service CIDR (10.96.0.0/12), which causes
+  # kubelet to inject 10.96.0.10 into pods' resolv.conf instead of the correct 172.30.0.10.
+  # Cilium's BPF DNS interception does not reliably redirect 10.96.0.10 on control plane nodes,
+  # so we set clusterDNS explicitly to match the actual CoreDNS service IP.
+  kubelet:
+    clusterDNS:
+      - 172.30.0.10

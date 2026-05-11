@@ -1,0 +1,12 @@
+apiVersion: v2
+name: openclaw-operator
+description: Helm chart for OpenClaw Operator
+type: application
+version: 0.1.0
+appVersion: "0.32.0"
+
+dependencies:
+- name: openclaw-operator
+  version: 0.32.0
+  repository: "oci://ghcr.io/openclaw-rocks/charts"
+  condition: openclaw-operator.enabled

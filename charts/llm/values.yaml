@@ -9,7 +9,7 @@ gpu:
       maxNumSeqs: 1
       gpuMemoryUtilization: 0.98
       tensorParallelSize: 1
-      dtype: float16
+      # dtype: float16
       resources:
         limits:
           nvidia.com/gpu: 1
@@ -50,9 +50,9 @@ model:
       args:
         - "--max-model-len=51200"
         - "--quantization=compressed-tensors"
-        - "--kv-cache-dtype=turboquant_k8v4"
-        - "--enable-chunked-prefill"
-        - "--max-num-batched-tokens=16384"
+        # - "--kv-cache-dtype=turboquant_k8v4"
+        # - "--enable-chunked-prefill"
+        # - "--max-num-batched-tokens=16384"
         - "--tool-call-parser=qwen3_coder"
     # Untested: RTX 3090 (24GB), 17.2 GiB weights may leave little room for KV cache.
     glm47-flash:

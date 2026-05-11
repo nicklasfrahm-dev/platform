@@ -1,0 +1,83 @@
+---
+# openclaw-instance.yaml
+apiVersion: openclaw.rocks/v1alpha1
+kind: OpenClawInstance
+metadata:
+  name: claw-0
+spec:
+  image:
+    tag: "2026.4.26-slim"
+  # --- Secrets ---
+  envFrom:
+    - secretRef:
+        name: claw-0
+
+  # --- Agent config ---
+  config:
+    raw:
+      agents:
+        defaults:
+          model:
+            primary: "vllm/qwen3-coder-30b"
+          # TELEGRAM_BOT_TOKEN is injected from the secret above
+      channels:
+        telegram:
+          allowFrom:
+            - "162239400" # numeric ID, e.g. 123456789
+      models:
+        providers:
+          vllm: # your custom provider name
+            baseUrl: "http://llm-predictor.llm/v1"
+            apiKey: "PLACEHOLDER" # not used by vLLM but required to be non-empty
+            api: "openai-completions"
+            models:
+              - id: "qwen3-coder-30b"
+                name: "Qwen3 Coder 30B"
+
+  # --- Storage: default storage class, 50Gi ---
+  storage:
+    persistence:
+      enabled: true
+      size: 50Gi
+      # storageClass omitted → uses cluster default
+
+  # --- NetworkPolicy: allow egress to llm-predictor on port 80 ---
+  security:
+    networkPolicy:
+      enabled: true
+      additionalEgress:
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: llm
+              podSelector:
+                matchLabels:
+                  app: isvc.llm-predictor
+          ports:
+            - protocol: TCP
+              port: 8000
+        - to:
+            - ipBlock:
+                cidr: "0.0.0.0/0"
+                except:
+                  - "10.0.0.0/8"
+                  - "192.168.0.0/16"
+                  - "172.16.0.0/12"
+          ports:
+            - protocol: TCP
+              port: 443
+
+  selfConfigure:
+    enabled: true
+    allowedActions:
+      - skills
+      - config
+      - workspaceFiles
+      - envVars
+  probes:
+    startup:
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      failureThreshold: 240
+    liveness:
+      initialDelaySeconds: 120 # don't even start checking until 2 min in

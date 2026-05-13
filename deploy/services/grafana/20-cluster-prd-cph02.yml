@@ -3,6 +3,12 @@ grafana:
   persistence:
     enabled: true
     size: 10Gi
+  env:
+    GF_DATABASE_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: grafana-postgres-app
+          key: password
   grafana.ini:
     server:
       domain: grafana.nicklasfrahm.dev
@@ -10,8 +16,8 @@ grafana:
     database:
       type: postgres
       host: grafana-postgres-rw.platform:5432
-      name: grafana
-      user: grafana
+      name: app
+      user: app
       password: ${GF_DATABASE_PASSWORD}
     auth:
       disable_login_form: true

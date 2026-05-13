@@ -6,7 +6,6 @@ gateway:
     - s3.cph02.nicklasfrahm.dev
     - auth.nicklasfrahm.dev
     - kommodity.io
-    - axon.nicklasfrahm.dev
     - llm.cph02.nicklasfrahm.dev
     - grafana.nicklasfrahm.dev
   addresses:

@@ -1,4 +1,7 @@
 grafana:
+  replicas: 2
+  podDisruptionBudget:
+    maxUnavailable: "50%"
   route:
     main:
       enabled: true

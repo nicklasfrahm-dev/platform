@@ -1,0 +1,18 @@
+grafana:
+  adminUser: admin
+  persistence:
+    enabled: true
+    size: 10Gi
+  grafana.ini:
+    server:
+      domain: ""
+    database:
+      type: postgres
+      host: grafana-postgres-rw.platform:5432
+      name: grafana
+      user: grafana
+      password: ${GF_DATABASE_PASSWORD}
+    log:
+      mode: console
+    analytics:
+      check_for_updates: false

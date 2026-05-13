@@ -4,15 +4,3 @@ cluster:
   version:
     postgresql: "16"
   mode: standalone
-  cluster:
-    instances: 2
-    storage:
-      size: 8Gi
-    walStorage:
-      enabled: true
-      size: 2Gi
-    postgresql:
-      synchronous:
-        enabled: true
-        method: any
-        number: 1

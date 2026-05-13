@@ -3,13 +3,6 @@ grafana:
   persistence:
     enabled: true
     size: 10Gi
-  # kubectl create secret generic grafana-oidc --from-literal=client_secret=<secret>
-  env:
-    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
-      valueFrom:
-        secretKeyRef:
-          name: grafana-oidc
-          key: client_secret
   grafana.ini:
     server:
       domain: grafana.nicklasfrahm.dev
@@ -28,7 +21,7 @@ grafana:
       name: Dex
       allow_sign_up: true
       client_id: grafana
-      client_secret: ${GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET}
+      use_pkce: true
       scopes: openid email profile groups
       auth_url: https://auth.nicklasfrahm.dev/auth
       token_url: https://auth.nicklasfrahm.dev/token

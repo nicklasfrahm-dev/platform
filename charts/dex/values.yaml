@@ -32,7 +32,7 @@ dex:
           - "http://localhost:8000"
       - id: grafana
         name: "Grafana"
-        secret: $GRAFANA_CLIENT_SECRET
+        public: true
         redirectURIs:
           - "https://grafana.nicklasfrahm.dev/login/generic_oauth"
   envVars:
@@ -48,12 +48,6 @@ dex:
         secretKeyRef:
           name: dex-github
           key: GITHUB_CLIENT_SECRET
-    # kubectl create secret generic dex-grafana --from-literal=GRAFANA_CLIENT_SECRET=<secret>
-    - name: GRAFANA_CLIENT_SECRET
-      valueFrom:
-        secretKeyRef:
-          name: dex-grafana
-          key: GRAFANA_CLIENT_SECRET
 
 httpRoute:
   enabled: true

@@ -15,12 +15,11 @@ grafana:
   persistence:
     enabled: true
     size: 10Gi
-  env:
+  envValueFrom:
     GF_DATABASE_PASSWORD:
-      valueFrom:
-        secretKeyRef:
-          name: grafana-postgres-cluster-app
-          key: password
+      secretKeyRef:
+        name: grafana-postgres-cluster-app
+        key: password
   grafana.ini:
     server:
       domain: grafana.nicklasfrahm.dev

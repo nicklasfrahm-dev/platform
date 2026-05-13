@@ -19,7 +19,7 @@ grafana:
     GF_DATABASE_PASSWORD:
       valueFrom:
         secretKeyRef:
-          name: grafana-postgres-app
+          name: grafana-postgres-cluster-app
           key: password
   grafana.ini:
     server:
@@ -27,7 +27,7 @@ grafana:
       root_url: https://grafana.nicklasfrahm.dev
     database:
       type: postgres
-      host: grafana-postgres-rw.platform:5432
+      host: grafana-postgres-cluster-rw.platform:5432
       name: app
       user: app
       password: ${GF_DATABASE_PASSWORD}

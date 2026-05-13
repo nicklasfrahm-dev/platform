@@ -1,0 +1,16 @@
+apiVersion: v2
+type: application
+name: grafana
+description: Deploy Grafana.
+icon: https://artifacthub.io/image/e54f5816-af00-4cc1-998e-b03de8ba5acd
+version: 0.1.0
+appVersion: "12.3.1"
+dependencies:
+  - repository: https://grafana.github.io/helm-charts
+    name: grafana
+    version: 10.5.15
+    condition: grafana.enabled
+    tags:
+      - observability
+      - grafana
+      - dashboards

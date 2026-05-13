@@ -1,0 +1,22 @@
+cluster:
+  enabled: true
+  type: postgresql
+  version:
+    postgresql: "16"
+  mode: standalone
+  cluster:
+    instances: 2
+    storage:
+      size: 8Gi
+    walStorage:
+      enabled: true
+      size: 2Gi
+  databases:
+    - name: grafana
+      owner: grafana
+  roles:
+    - name: grafana
+      passwordSecret:
+        name: cnpg-cluster-grafana
+      login: true
+      superuser: false

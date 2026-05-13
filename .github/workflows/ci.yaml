@@ -21,7 +21,7 @@ jobs:
         run: |
           # Dynamically discover scopes from cmd/ and pkg/
           mapfile -t scopes < <(
-            printf 'ci\nconfig\ndeps\ntools\ndocs\nllm\n'
+            printf 'charts\nci\nconfig\ndeps\ntools\ndocs\nllm\n'
             find cmd -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
             grep -rh --include='*.go' '^package ' pkg/ | awk '{print $2}' | grep -v '_test$' | sort -u
           )

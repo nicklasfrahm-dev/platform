@@ -3,7 +3,7 @@ type: application
 name: dex
 description: Deploy a Dex instance for single sign-on (SSO) and identity management.
 icon: https://dexidp.io/img/logos/dex-glyph-color.png
-version: 1.0.0
+version: 1.0.1
 appVersion: "0.24.0"
 dependencies:
   - name: dex

@@ -1,0 +1,16 @@
+apiVersion: v2
+type: application
+name: cnpg-cluster
+description: Deploy a CloudNativePG PostgreSQL cluster.
+icon: https://cloudnative-pg.io/images/hero_illustration.png
+version: 0.1.0
+appVersion: "16"
+dependencies:
+  - repository: https://cloudnative-pg.github.io/charts
+    name: cluster
+    version: 0.6.0
+    condition: cluster.enabled
+    tags:
+      - database
+      - postgresql
+      - cnpg

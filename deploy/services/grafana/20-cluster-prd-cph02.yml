@@ -1,0 +1,54 @@
+grafana:
+  route:
+    main:
+      enabled: true
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      hostnames:
+        - grafana.nicklasfrahm.dev
+      parentRefs:
+        - name: shared-http
+          namespace: platform
+  persistence:
+    enabled: true
+    size: 10Gi
+  env:
+    GF_DATABASE_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: grafana-postgres-app
+          key: password
+  grafana.ini:
+    server:
+      domain: grafana.nicklasfrahm.dev
+      root_url: https://grafana.nicklasfrahm.dev
+    database:
+      type: postgres
+      host: grafana-postgres-rw.platform:5432
+      name: app
+      user: app
+      password: ${GF_DATABASE_PASSWORD}
+    auth:
+      disable_login_form: true
+      oauth_auto_login: true
+    auth.generic_oauth:
+      enabled: true
+      name: Dex
+      allow_sign_up: true
+      client_id: grafana
+      use_pkce: true
+      scopes: openid email profile groups
+      auth_url: https://auth.nicklasfrahm.dev/auth
+      token_url: https://auth.nicklasfrahm.dev/token
+      api_url: https://auth.nicklasfrahm.dev/userinfo
+      allowed_groups: "nicklasfrahm-dev:platform"
+      role_attribute_path: "contains(groups[*], 'nicklasfrahm-dev:platform') && 'Admin' || 'Viewer'"
+      role_attribute_strict: true
+    log:
+      mode: console
+    log.console:
+      format: json
+    analytics:
+      check_for_updates: false
+    security:
+      disable_initial_admin_creation: true

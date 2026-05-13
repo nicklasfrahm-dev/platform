@@ -30,6 +30,11 @@ dex:
         redirectURIs:
           - "https://argocd.cph02.nicklasfrahm.dev/auth/callback"
           - "http://localhost:8000"
+      - id: grafana
+        name: "Grafana"
+        public: true
+        redirectURIs:
+          - "https://grafana.nicklasfrahm.dev/login/generic_oauth"
   envVars:
     # The GitHub OIDC secrets are manually created using:
     # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>

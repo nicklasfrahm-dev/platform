@@ -8,5 +8,6 @@ gateway:
     - kommodity.io
     - axon.nicklasfrahm.dev
     - llm.cph02.nicklasfrahm.dev
+    - grafana.nicklasfrahm.dev
   addresses:
     - value: 172.29.0.1

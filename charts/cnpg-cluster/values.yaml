@@ -1,0 +1,6 @@
+cluster:
+  enabled: true
+  type: postgresql
+  version:
+    postgresql: "16"
+  mode: standalone

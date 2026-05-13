@@ -1,4 +1,14 @@
 grafana:
+  route:
+    main:
+      enabled: true
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      hostnames:
+        - grafana.nicklasfrahm.dev
+      parentRefs:
+        - name: shared-http
+          namespace: platform
   persistence:
     enabled: true
     size: 10Gi

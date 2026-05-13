@@ -11,6 +11,11 @@ cluster:
     walStorage:
       enabled: true
       size: 2Gi
+    postgresql:
+      synchronous:
+        enabled: true
+        method: any
+        number: 1
   databases:
     - name: grafana
       owner: grafana

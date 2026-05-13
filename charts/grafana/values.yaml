@@ -9,7 +9,7 @@ grafana:
       domain: ""
     database:
       type: postgres
-      host: cnpg-cluster-rw.platform.svc.cluster.local:5432
+      host: grafana-db-rw.platform.svc.cluster.local:5432
       name: grafana
       user: grafana
       password: ${GF_DATABASE_PASSWORD}

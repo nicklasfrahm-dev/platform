@@ -36,6 +36,8 @@ grafana:
       role_attribute_strict: true
     log:
       mode: console
+    log.console:
+      format: json
     analytics:
       check_for_updates: false
     security:

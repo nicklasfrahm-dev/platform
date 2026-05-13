@@ -11,6 +11,5 @@ cluster:
       size: 2Gi
     postgresql:
       synchronous:
-        enabled: true
         method: any
         number: 1

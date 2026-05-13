@@ -1,5 +1,8 @@
 cluster:
   cluster:
+    initdb:
+      database: app
+      owner: app
     instances: 2
     storage:
       size: 10Gi

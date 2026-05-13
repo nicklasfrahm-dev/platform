@@ -26,8 +26,9 @@ grafana:
       auth_url: https://auth.nicklasfrahm.dev/auth
       token_url: https://auth.nicklasfrahm.dev/token
       api_url: https://auth.nicklasfrahm.dev/userinfo
+      allowed_groups: "nicklasfrahm-dev:platform"
       role_attribute_path: "contains(groups[*], 'nicklasfrahm-dev:platform') && 'Admin' || 'Viewer'"
-      role_attribute_strict: false
+      role_attribute_strict: true
     log:
       mode: console
     analytics:

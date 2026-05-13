@@ -1,6 +1,6 @@
 apiVersion: v2
 type: application
-name: cloudnative-pg
+name: cnpg-operator
 description: Deploy the CloudNativePG operator.
 icon: https://cloudnative-pg.io/images/hero_image.png
 version: 0.1.0

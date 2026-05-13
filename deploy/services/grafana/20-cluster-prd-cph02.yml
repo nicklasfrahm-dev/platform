@@ -1,5 +1,4 @@
 grafana:
-  adminUser: admin
   persistence:
     enabled: true
     size: 10Gi
@@ -39,3 +38,5 @@ grafana:
       mode: console
     analytics:
       check_for_updates: false
+    security:
+      disable_initial_admin_creation: true

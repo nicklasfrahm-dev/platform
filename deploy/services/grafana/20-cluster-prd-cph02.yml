@@ -12,10 +12,6 @@ grafana:
       parentRefs:
         - name: shared-http
           namespace: platform
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClassName: ceph-filesystem
   envValueFrom:
     GF_DATABASE_PASSWORD:
       secretKeyRef:

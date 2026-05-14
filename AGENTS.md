@@ -47,6 +47,13 @@ When you encounter an error:
 
 ---
 
+## KUBERNETES RESOURCES
+
+- **Memory**: `limits` must equal `requests` to prevent memory overcommit.
+- **CPU**: set `requests` only, never `limits`. CPU limits cause throttling without preventing overcommit.
+
+---
+
 ## GO SPECIFICS
 
 - **Idiomatic Go**: Follow table-driven tests, explicit error wrapping, and interface-first design.

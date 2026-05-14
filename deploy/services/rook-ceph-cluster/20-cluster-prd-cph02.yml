@@ -90,6 +90,8 @@ rook-ceph-cluster:
         failureDomain: host
         replicated:
           size: 3
+        parameters:
+          pg_num: "32"
       storageClass:
         enabled: true
         name: ceph-block
@@ -157,10 +159,14 @@ rook-ceph-cluster:
           failureDomain: host
           replicated:
             size: 3
+          parameters:
+            pg_num: "32"
         dataPool:
           failureDomain: host
           replicated:
             size: 3
+          parameters:
+            pg_num: "32"
         preservePoolsOnDelete: true
         gateway:
           port: 80

@@ -35,6 +35,11 @@ dex:
         public: true
         redirectURIs:
           - "https://grafana.nicklasfrahm.dev/login/generic_oauth"
+      - id: skatd
+        name: "skatd"
+        public: true
+        redirectURIs:
+          - "http://localhost:8080/ui/callback"
   envVars:
     # The GitHub OIDC secrets are manually created using:
     # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>

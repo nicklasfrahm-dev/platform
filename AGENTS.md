@@ -49,7 +49,8 @@ When you encounter an error:
 
 ## KUBERNETES RESOURCES
 
-Always set `limits` equal to `requests` for both CPU and memory on every container. This prevents memory overcommit and ensures pods get the Guaranteed QoS class.
+- **Memory**: `limits` must equal `requests` to prevent memory overcommit.
+- **CPU**: set `requests` only, never `limits`. CPU limits cause throttling without preventing overcommit.
 
 ---
 

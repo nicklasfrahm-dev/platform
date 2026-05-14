@@ -17,12 +17,10 @@ rook-ceph-cluster:
         - name: pg_autoscaler
           enabled: true
 
-    # enable the ceph dashboard for viewing cluster status
     dashboard:
       enabled: true
       ssl: false
 
-    # Network configuration, see: https://github.com/rook/rook/blob/master/Documentation/CRDs/Cluster/ceph-cluster-crd.md#network-configuration-settings
     network:
       connections:
         encryption:
@@ -31,13 +29,85 @@ rook-ceph-cluster:
           enabled: true
         requireMsgr2: true
 
-    # enable log collector, daemons will log on files and rotate
     logCollector:
       enabled: false
 
-    # The option to automatically remove OSDs that are out and are safe to destroy.
     removeOSDsIfOutAndSafeToRemove: true
 
     storage:
       config:
         encryptedDevice: true
+
+  # pg_num=32 keeps initial PGs well under the 250/OSD warning threshold on a
+  # 3-disk cluster; the pg_autoscaler will scale up as data grows.
+  cephBlockPools:
+    - name: ceph-blockpool
+      spec:
+        failureDomain: host
+        replicated:
+          size: 3
+        parameters:
+          pg_num: "32"
+      storageClass:
+        enabled: true
+        name: ceph-block
+        isDefault: true
+        reclaimPolicy: Delete
+        allowVolumeExpansion: true
+        volumeBindingMode: "Immediate"
+        parameters:
+          imageFormat: "2"
+          imageFeatures: layering
+          csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+          csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
+          csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/controller-publish-secret-name: rook-csi-rbd-provisioner
+          csi.storage.k8s.io/controller-publish-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+          csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/fstype: ext4
+
+  cephFileSystems:
+    - name: ceph-filesystem
+      spec:
+        metadataPool:
+          replicated:
+            size: 3
+          parameters:
+            pg_num: "32"
+        dataPools:
+          - failureDomain: host
+            replicated:
+              size: 3
+            name: data0
+            parameters:
+              pg_num: "32"
+        metadataServer:
+          activeCount: 1
+          activeStandby: true
+          resources:
+            limits:
+              memory: "4Gi"
+            requests:
+              cpu: "1000m"
+              memory: "4Gi"
+          priorityClassName: system-cluster-critical
+      storageClass:
+        enabled: true
+        isDefault: false
+        name: ceph-filesystem
+        pool: data0
+        reclaimPolicy: Delete
+        allowVolumeExpansion: true
+        volumeBindingMode: "Immediate"
+        parameters:
+          csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+          csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+          csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/controller-publish-secret-name: rook-csi-cephfs-provisioner
+          csi.storage.k8s.io/controller-publish-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+          csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
+          csi.storage.k8s.io/fstype: ext4

@@ -15,12 +15,10 @@ var version string
 
 func rootCommand(logger *zap.Logger) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "skatd [command]",
-		Short:   "skatd is a storage-agnostic secret management server.",
-		Version: version,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			return cmd.Help()
-		},
+		Use:          "skatd [command]",
+		Short:        "skatd is a storage-agnostic secret management server.",
+		Version:      version,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},

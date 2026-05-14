@@ -1,0 +1,26 @@
+oauth2-proxy:
+  enabled: true
+  ingress:
+    enabled: false
+  config:
+    clientID: ceph-dashboard
+    existingSecret: ceph-dashboard-proxy
+    requiredSecretKeys:
+      - cookie-secret
+    emailDomains:
+      - "*"
+  extraArgs:
+    - --provider=oidc
+    - --pkce-code-challenge-method=S256
+    - --oidc-issuer-url=https://auth.nicklasfrahm.dev
+    - --client-secret=
+    - --skip-provider-button=true
+    - --pass-authorization-header=true
+    - --set-xauthrequest=true
+
+httpRoute:
+  enabled: false
+  gateway:
+    namespace: platform
+    name: shared-http
+  hostname: ""

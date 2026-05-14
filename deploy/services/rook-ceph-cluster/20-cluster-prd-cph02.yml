@@ -72,15 +72,6 @@ rook-ceph-cluster:
           devices:
             - name: "sda"
 
-  # -- Enable an HTTPRoute for the ceph-dashboard
-  route:
-    dashboard:
-      host:
-        name: ceph.cph02.nicklasfrahm.dev
-        pathType: PathPrefix
-      parentRefs:
-        - namespace: platform
-          name: shared-http
 
   # We want to use erasure coding for block storage pools.
   cephBlockPools:

@@ -15,7 +15,7 @@ grafana:
   persistence:
     enabled: true
     size: 10Gi
-    storageClassName: ceph-bucket
+    storageClassName: ceph-filesystem
   envValueFrom:
     GF_DATABASE_PASSWORD:
       secretKeyRef:

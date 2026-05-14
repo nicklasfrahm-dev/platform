@@ -167,7 +167,8 @@ rook-ceph-cluster:
           activeStandby: true
           resources:
             limits:
-              memory: "2Gi"
+              cpu: "250m"
+              memory: "1Gi"
             requests:
               cpu: "250m"
               memory: "1Gi"

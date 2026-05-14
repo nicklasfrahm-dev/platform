@@ -47,6 +47,12 @@ When you encounter an error:
 
 ---
 
+## KUBERNETES RESOURCES
+
+Always set `limits` equal to `requests` for both CPU and memory on every container. This prevents memory overcommit and ensures pods get the Guaranteed QoS class.
+
+---
+
 ## GO SPECIFICS
 
 - **Idiomatic Go**: Follow table-driven tests, explicit error wrapping, and interface-first design.

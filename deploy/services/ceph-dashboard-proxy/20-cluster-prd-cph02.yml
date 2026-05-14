@@ -7,6 +7,8 @@ oauth2-proxy:
     - --pkce-code-challenge-method=S256
     - --oidc-issuer-url=https://auth.nicklasfrahm.dev
     - --client-secret=
+    - --oidc-groups-claim=groups
+    - --allowed-group=nicklasfrahm-dev:platform
     - --skip-provider-button=true
     - --pass-authorization-header=true
     - --set-xauthrequest=true
@@ -23,3 +25,8 @@ httpRoute:
     namespace: platform
     name: shared-http
   hostname: ceph.cph02.nicklasfrahm.dev
+
+ssoSetup:
+  enabled: true
+  adminUsers:
+    - nicklasfrahm

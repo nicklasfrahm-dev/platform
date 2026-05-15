@@ -77,7 +77,7 @@ oauth2-proxy:
         - name: X-Access-Token
           values:
             - claimSource:
-                claim: access_token
+                claim: id_token
   extraArgs:
     - --skip-provider-button=true
   httpRoute:
@@ -98,3 +98,6 @@ oauth2-proxy:
     # Set to true to opt in to Ceph telemetry (requires accepting the sharing license).
     # Defaults to false to suppress HEALTH_WARN "Telemetry requires re-opt-in".
     telemetryOptIn: false
+    # JMESPath expression to extract roles from the JWT. If empty, role extraction is skipped.
+    # Example: contains(groups[*], 'org:team') && `["administrator"]` || `[]`
+    rolesPath: ""

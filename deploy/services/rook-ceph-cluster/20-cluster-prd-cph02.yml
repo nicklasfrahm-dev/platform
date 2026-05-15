@@ -225,3 +225,4 @@ oauth2-proxy:
     telemetryOptIn: true
     adminUsers:
       - nicklasfrahm
+    rolesPath: 'contains(groups[*], ''nicklasfrahm-dev:platform'') && `["administrator"]` || `[]`'

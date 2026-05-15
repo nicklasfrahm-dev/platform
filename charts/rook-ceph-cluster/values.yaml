@@ -2,7 +2,6 @@ rook-ceph-cluster:
   enabled: true
   cephImage:
     tag: v20.2.1
-    allowUnsupported: true
   toolbox:
     enabled: true
     resources:

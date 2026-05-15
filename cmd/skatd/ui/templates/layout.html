@@ -1,0 +1,63 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>skatd</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f8f9fa; color: #212529; }
+    nav { background: #1a1a2e; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1.5rem; }
+    nav a { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; }
+    nav a:hover { color: #fff; }
+    nav .brand { font-weight: 700; font-size: 1.1rem; color: #fff; letter-spacing: 0.05em; }
+    nav .spacer { flex: 1; }
+    nav .user { font-size: 0.85rem; color: #aaa; }
+    main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    th, td { padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f1f3f5; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; }
+    td { font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9fa; }
+    .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: none; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-danger:hover { background: #bb2d3b; }
+    .btn-sm { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+    .toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .tag { display: inline-block; background: #e9ecef; border-radius: 3px; padding: 0.15rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
+    form.inline { display: flex; gap: 0.5rem; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.75rem; }
+    label { font-size: 0.85rem; font-weight: 500; }
+    input, textarea { padding: 0.4rem 0.6rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; width: 100%; font-family: inherit; }
+    textarea { font-family: monospace; min-height: 80px; resize: vertical; }
+    .card { background: #fff; border-radius: 6px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 1rem; }
+    .kv-table { width: 100%; border-collapse: collapse; }
+    .kv-table td { padding: 0.4rem 0.5rem; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+    .kv-table td:first-child { width: 40%; font-weight: 500; color: #495057; }
+    .kv-table td:last-child { font-family: monospace; word-break: break-all; }
+    .kv-table tr:last-child td { border-bottom: none; }
+    .alert { padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .alert-error { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    .nav-link-active { color: #fff !important; font-weight: 600; border-bottom: 2px solid #5b7cff; padding-bottom: 2px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="brand">skatd</span>
+    <a href="/ui/secrets" {{if eq .Page "secrets"}}class="nav-link-active"{{end}}>Secrets</a>
+    <a href="/ui/policies" {{if eq .Page "policies"}}class="nav-link-active"{{end}}>Policies</a>
+    <span class="spacer"></span>
+    {{if .User}}<span class="user">{{.User}}</span>{{end}}
+  </nav>
+  <main>
+    {{template "content" .}}
+  </main>
+</body>
+</html>
+{{end}}

@@ -21,40 +21,17 @@ argocd:
       scopes: "[groups, email]"
       policy.default: ""
       policy.custom.csv: |
-        p, role:platform, applications, get, */*, allow
-        p, role:platform, applications, create, */*, allow
-        p, role:platform, applications, update, */*, allow
-        p, role:platform, applications, delete, */*, allow
-        p, role:platform, applications, sync, */*, allow
-        p, role:platform, applications, action, */*, allow
-        p, role:platform, applications, override, */*, allow
-        p, role:platform, applicationsets, get, */*, allow
-        p, role:platform, applicationsets, create, */*, allow
-        p, role:platform, applicationsets, update, */*, allow
-        p, role:platform, applicationsets, delete, */*, allow
-        p, role:platform, clusters, get, *, allow
-        p, role:platform, clusters, create, *, allow
-        p, role:platform, clusters, update, *, allow
-        p, role:platform, clusters, delete, *, allow
-        p, role:platform, projects, get, *, allow
-        p, role:platform, projects, create, *, allow
-        p, role:platform, projects, update, *, allow
-        p, role:platform, projects, delete, *, allow
-        p, role:platform, repositories, get, *, allow
-        p, role:platform, repositories, create, *, allow
-        p, role:platform, repositories, update, *, allow
-        p, role:platform, repositories, delete, *, allow
-        p, role:platform, accounts, get, *, allow
-        p, role:platform, accounts, update, *, allow
-        p, role:platform, certificates, get, *, allow
-        p, role:platform, certificates, create, *, allow
-        p, role:platform, certificates, delete, *, allow
-        p, role:platform, gpgkeys, get, *, allow
-        p, role:platform, gpgkeys, create, *, allow
-        p, role:platform, gpgkeys, delete, *, allow
-        p, role:platform, logs, get, */*, allow
-        p, role:platform, exec, create, */*, allow
-        p, role:platform, extensions, invoke, */*, allow
+        p, role:platform, applications, *, */*, allow
+        p, role:platform, applicationsets, *, */*, allow
+        p, role:platform, clusters, *, *, allow
+        p, role:platform, projects, *, *, allow
+        p, role:platform, repositories, *, *, allow
+        p, role:platform, accounts, *, *, allow
+        p, role:platform, certificates, *, *, allow
+        p, role:platform, gpgkeys, *, *, allow
+        p, role:platform, logs, *, */*, allow
+        p, role:platform, exec, *, */*, allow
+        p, role:platform, extensions, *, */*, allow
 
         g, nicklasfrahm-dev:platform, role:platform
     params:

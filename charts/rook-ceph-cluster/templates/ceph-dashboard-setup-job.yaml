@@ -41,8 +41,17 @@ spec:
               key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
               EOF
 
+              {{- if $proxy.ssoSetup.rolesPath }}
+              ROLES_PATH=$(cat <<'ROLES_PATH_EOF'
+              {{ $proxy.ssoSetup.rolesPath }}
+              ROLES_PATH_EOF
+              )
+              echo "Enabling OAuth2 SSO on Ceph Dashboard with roles_path..."
+              ceph dashboard sso enable oauth2 "$ROLES_PATH"
+              {{- else }}
               echo "Enabling OAuth2 SSO on Ceph Dashboard..."
               ceph dashboard sso enable oauth2
+              {{- end }}
 
               {{- if $proxy.ssoSetup.telemetryOptIn }}
               echo "Opting in to Ceph telemetry..."

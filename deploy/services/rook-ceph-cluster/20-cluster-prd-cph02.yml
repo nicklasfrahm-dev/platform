@@ -72,15 +72,6 @@ rook-ceph-cluster:
           devices:
             - name: "sda"
 
-  # -- Enable an HTTPRoute for the ceph-dashboard
-  route:
-    dashboard:
-      host:
-        name: ceph.cph02.nicklasfrahm.dev
-        pathType: PathPrefix
-      parentRefs:
-        - namespace: platform
-          name: shared-http
 
   # We want to use erasure coding for block storage pools.
   cephBlockPools:
@@ -198,3 +189,32 @@ rook-ceph-cluster:
         parentRefs:
           - namespace: platform
             name: shared-http
+
+oauth2-proxy:
+  config:
+    upstreams:
+      - http://rook-ceph-mgr-dashboard:7000
+  extraArgs:
+    - --provider=oidc
+    - --pkce-code-challenge-method=S256
+    - --oidc-issuer-url=https://auth.nicklasfrahm.dev
+    - --client-secret=
+    - --oidc-groups-claim=groups
+    - --allowed-group=nicklasfrahm-dev:platform
+    - --skip-provider-button=true
+    - --pass-authorization-header=true
+    - --set-xauthrequest=true
+  resources:
+    limits:
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+  httpRoute:
+    gateway:
+      namespace: platform
+      name: shared-http
+    hostname: ceph.cph02.nicklasfrahm.dev
+  ssoSetup:
+    adminUsers:
+      - nicklasfrahm

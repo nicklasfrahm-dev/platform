@@ -40,6 +40,11 @@ dex:
         public: true
         redirectURIs:
           - "http://localhost:8080/ui/callback"
+      - id: ceph-dashboard
+        name: "Ceph Dashboard"
+        public: true
+        redirectURIs:
+          - "https://ceph.cph02.nicklasfrahm.dev/oauth2/callback"
   envVars:
     # The GitHub OIDC secrets are manually created using:
     # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>

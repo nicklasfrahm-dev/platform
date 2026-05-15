@@ -1,0 +1,113 @@
+{{- $proxy := index .Values "oauth2-proxy" }}
+{{- if and $proxy.enabled $proxy.ssoSetup.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-sso-setup" .Release.Name | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: sso-setup
+          image: {{ $proxy.ssoSetup.image | quote }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              CEPH_CONFIG="/etc/ceph/ceph.conf"
+              MON_CONFIG="/etc/rook/mon-endpoints"
+              KEYRING_FILE="/etc/ceph/keyring"
+
+              mon_endpoints=$(cat "${MON_CONFIG}" | sed 's/[a-z0-9_-]\+=//g')
+
+              cat > "${CEPH_CONFIG}" <<EOF
+              [global]
+              mon_host = ${mon_endpoints}
+
+              [client.admin]
+              keyring = ${KEYRING_FILE}
+              EOF
+
+              cat > "${KEYRING_FILE}" <<EOF
+              [${ROOK_CEPH_USERNAME}]
+              key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
+              EOF
+
+              echo "Enabling OAuth2 SSO on Ceph Dashboard..."
+              ceph dashboard sso enable oauth2
+
+              DESIRED_USERS=(
+              {{- range $proxy.ssoSetup.adminUsers }}
+                {{ . }}
+              {{- end }}
+              )
+
+              {{- range $proxy.ssoSetup.adminUsers }}
+              echo "Ensuring admin user {{ . }} exists..."
+              if ceph dashboard ac-user-show {{ . | quote }} > /dev/null 2>&1; then
+                ceph dashboard ac-user-set-roles {{ . | quote }} administrator
+              else
+                openssl rand -base64 32 | \
+                  ceph dashboard ac-user-create {{ . | quote }} -i /dev/stdin administrator
+              fi
+              {{- end }}
+
+              echo "Removing stale admin users..."
+              current_users=$(ceph dashboard ac-user-list --format json | \
+                python3 -c "import sys,json; [print(u) for u in json.load(sys.stdin)]")
+              while IFS= read -r user; do
+                [[ -z "$user" ]] && continue
+                found=false
+                for desired in "${DESIRED_USERS[@]}"; do
+                  [[ "$user" == "$desired" ]] && found=true && break
+                done
+                if [[ "$found" == "false" ]]; then
+                  echo "Removing stale user $user..."
+                  ceph dashboard ac-user-delete "$user"
+                fi
+              done <<< "$current_users"
+
+              echo "SSO setup complete."
+          env:
+            - name: ROOK_CEPH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $proxy.ssoSetup.monSecret | quote }}
+                  key: ceph-username
+          resources:
+            limits:
+              memory: "128Mi"
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+          volumeMounts:
+            - name: ceph-config
+              mountPath: /etc/ceph
+            - name: ceph-admin-secret
+              mountPath: /var/lib/rook-ceph-mon
+            - name: mon-endpoint-volume
+              mountPath: /etc/rook
+      volumes:
+        - name: ceph-admin-secret
+          secret:
+            secretName: {{ $proxy.ssoSetup.monSecret | quote }}
+            items:
+              - key: ceph-secret
+                path: secret.keyring
+        - name: mon-endpoint-volume
+          configMap:
+            name: {{ $proxy.ssoSetup.monEndpointsConfigMap | quote }}
+            items:
+              - key: data
+                path: mon-endpoints
+        - name: ceph-config
+          emptyDir: {}
+{{- end }}

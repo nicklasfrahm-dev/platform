@@ -41,3 +41,39 @@ rook-ceph-cluster:
     storage:
       config:
         encryptedDevice: true
+
+oauth2-proxy:
+  enabled: false
+  ingress:
+    enabled: false
+  config:
+    clientID: ceph-dashboard
+    existingSecret: ceph-dashboard-proxy
+    requiredSecretKeys:
+      - cookie-secret
+    emailDomains:
+      - "*"
+  extraArgs:
+    - --provider=oidc
+    - --pkce-code-challenge-method=S256
+    - --oidc-issuer-url=https://auth.nicklasfrahm.dev
+    - --client-secret=
+    - --oidc-groups-claim=groups
+    - --skip-provider-button=true
+    - --pass-authorization-header=true
+    - --set-xauthrequest=true
+  httpRoute:
+    enabled: true
+    gateway:
+      namespace: platform
+      name: shared-http
+    hostname: ""
+  ssoSetup:
+    enabled: true
+    # Image must match the running Ceph cluster version.
+    image: quay.io/ceph/ceph:v19.2.3
+    # GitHub usernames to pre-create as Ceph Dashboard administrators.
+    adminUsers: []
+    # Names of the Rook-generated secret and configmap used to reach the MONs.
+    monSecret: rook-ceph-mon
+    monEndpointsConfigMap: rook-ceph-mon-endpoints

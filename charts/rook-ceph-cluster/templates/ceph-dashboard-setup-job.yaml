@@ -71,22 +71,19 @@ spec:
               {{- end }}
 
               echo "Removing stale admin users..."
-              if raw_users=$(ceph dashboard ac-user-list 2>/dev/null); then
-                current_users=$(printf '%s' "$raw_users" | python3 -c "import sys,json; d=sys.stdin.read().strip(); [print(u.strip()) for u in (json.loads(d) if d.startswith('[') else d.splitlines()) if u.strip()]" 2>/dev/null) || current_users=""
-                while IFS= read -r user; do
-                  [[ -z "$user" ]] && continue
-                  found=false
-                  for desired in "${DESIRED_USERS[@]}"; do
-                    [[ "$user" == "$desired" ]] && found=true && break
-                  done
-                  if [[ "$found" == "false" ]]; then
-                    echo "Removing stale user: $user"
-                    ceph dashboard ac-user-delete "$user"
-                  fi
-                done <<< "$current_users"
-              else
-                echo "Warning: ac-user-list unavailable, skipping stale user removal."
-              fi
+              current_users=$(ceph dashboard ac-user-show --format json | \
+                python3 -c "import sys,json; print('\n'.join(json.load(sys.stdin)))")
+              while IFS= read -r user; do
+                [[ -z "$user" ]] && continue
+                found=false
+                for desired in "${DESIRED_USERS[@]}"; do
+                  [[ "$user" == "$desired" ]] && found=true && break
+                done
+                if [[ "$found" == "false" ]]; then
+                  echo "Removing stale user: $user"
+                  ceph dashboard ac-user-delete "$user"
+                fi
+              done <<< "$current_users"
 
               echo "SSO setup complete."
           env:

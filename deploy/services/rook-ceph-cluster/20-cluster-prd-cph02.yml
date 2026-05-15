@@ -222,5 +222,6 @@ oauth2-proxy:
       name: shared-http
     hostname: ceph.cph02.nicklasfrahm.dev
   ssoSetup:
+    telemetryOptIn: true
     adminUsers:
       - nicklasfrahm

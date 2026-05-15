@@ -43,7 +43,7 @@ rook-ceph-cluster:
         encryptedDevice: true
 
 oauth2-proxy:
-  enabled: true
+  enabled: false
   ingress:
     enabled: false
   config:

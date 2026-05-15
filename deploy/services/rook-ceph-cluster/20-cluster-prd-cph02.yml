@@ -201,6 +201,8 @@ oauth2-proxy:
         - id: oidc
           provider: oidc
           clientId: ceph-dashboard
+          # oauth2-proxy requires a client secret even for public PKCE clients, /dev/null is the workaround:
+          # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
           clientSecretFile: /dev/null
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev

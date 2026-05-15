@@ -58,7 +58,7 @@ oauth2-proxy:
     - --code-challenge-method=S256
     - --oidc-issuer-url=https://auth.nicklasfrahm.dev
     - --client-id=ceph-dashboard
-    - --client-secret=unused
+    - --client-secret-file=/dev/null
     - --oidc-groups-claim=groups
     - --skip-provider-button=true
     - --pass-authorization-header=true

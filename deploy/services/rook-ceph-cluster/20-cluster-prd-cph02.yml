@@ -3,6 +3,7 @@ rook-ceph-cluster:
 
   cephImage:
     tag: v20.2.1
+    allowUnsupported: true
 
   cephClusterSpec:
     # To control where various services will be scheduled by kubernetes, use the placement configuration sections below.
@@ -207,8 +208,7 @@ oauth2-proxy:
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
-          codeChallenge:
-            method: S256
+          codeChallengeMethod: S256
           allowedGroups:
             - nicklasfrahm-dev:platform
   resources:

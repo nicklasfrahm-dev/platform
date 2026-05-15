@@ -2,6 +2,7 @@ rook-ceph-cluster:
   enabled: true
   cephImage:
     tag: v20.2.1
+    allowUnsupported: true
   toolbox:
     enabled: true
     resources:
@@ -67,8 +68,7 @@ oauth2-proxy:
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
-          codeChallenge:
-            method: S256
+          codeChallengeMethod: S256
       upstreamConfig:
         upstreams:
           - id: dashboard
@@ -77,7 +77,8 @@ oauth2-proxy:
       injectRequestHeaders:
         - name: X-Access-Token
           values:
-            - claim: access_token
+            - claimSource:
+                claim: access_token
   extraArgs:
     - --skip-provider-button=true
   httpRoute:

@@ -3,7 +3,7 @@ type: application
 name: argocd
 description: Deploy ArgoCD for continuous delivery and GitOps workflows.
 icon: https://artifacthub.io/image/e16221f4-a3b1-49f6-9b65-cb4dbf30ed83
-version: 1.0.2
+version: 1.0.3
 appVersion: "9.1.0"
 dependencies:
   - repository: oci://ghcr.io/argoproj/argo-helm

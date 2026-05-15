@@ -42,10 +42,10 @@ rook-ceph-cluster:
           memory: "50Mi"
       mgr-sidecar:
         limits:
-          memory: "40Mi"
+          memory: "128Mi"
         requests:
           cpu: "100m"
-          memory: "40Mi"
+          memory: "128Mi"
       cleanup:
         limits:
           memory: "100Mi"

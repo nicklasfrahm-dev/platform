@@ -191,6 +191,7 @@ rook-ceph-cluster:
             name: shared-http
 
 oauth2-proxy:
+  enabled: true
   config:
     upstreams:
       - http://rook-ceph-mgr-dashboard:7000

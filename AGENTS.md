@@ -79,6 +79,11 @@ All commits must follow the **Conventional Commits** specification.
 - **Description**: Written in imperative mood ("add feature", not "added" or "adds")
 - **PR Description**: NEVER include a test plan section, attribution to any AI assistant (Crush, OpenCode, Claude, etc.), or any other extra sections. A PR description must contain only a concise summary of the changes.
 
+### Pull Requests
+
+- **Always create a PR.** Never push commits directly to `main`. Branch protection is enforced — direct pushes will be rejected.
+- Create a branch, push it, and open a PR via `gh pr create`.
+
 ### Examples
 
 - `feat(llm): add gemma4 deployment config`

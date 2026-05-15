@@ -195,15 +195,22 @@ rook-ceph-cluster:
 
 oauth2-proxy:
   enabled: true
-  extraArgs:
-    - --provider=oidc
-    - --code-challenge-method=S256
-    - --oidc-issuer-url=https://auth.nicklasfrahm.dev
-    - --client-id=ceph-dashboard
-    - --client-secret-file=/dev/null
-    - --oidc-groups-claim=groups
-    - --allowed-group=nicklasfrahm-dev:platform
-    - --skip-provider-button=true
+  alphaConfig:
+    configData:
+      providers:
+        - id: oidc
+          provider: oidc
+          clientId: ceph-dashboard
+          # oauth2-proxy requires a client secret even for public PKCE clients, /dev/null is the workaround:
+          # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
+          clientSecretFile: /dev/null
+          oidcConfig:
+            issuerURL: https://auth.nicklasfrahm.dev
+            groupsClaim: groups
+          codeChallenge:
+            method: S256
+          allowedGroups:
+            - nicklasfrahm-dev:platform
   resources:
     limits:
       memory: "128Mi"

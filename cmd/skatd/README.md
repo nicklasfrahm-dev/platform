@@ -26,7 +26,7 @@ Key-value pairs stored under a namespace and name. Values are optionally encrypt
 
 ### Policies
 
-> **TODO:** Replace the claims-map matching model with [CEL](https://cel.dev) expressions, giving full programmatic control over subject matching and access rules (e.g. `claims.groups.exists(g, g == 'admins')`). `SKATD_DEFAULT_POLICIES` should accept newline-separated JSON objects (one policy per line) rather than a JSON array, to make it easier to compose policies in multi-line env vars and config maps.
+> **TODO:** Replace the claims-map matching model with [CEL](https://cel.dev) expressions. `SKATD_DEFAULT_POLICIES` should become a newline-separated list of plain CEL expressions — no JSON wrapping, no Kubernetes resource envelope. Each line is one policy rule evaluated against the incoming token claims.
 
 Policies grant access by binding OIDC subjects (identified by issuer + JWT claims) to a set of verbs and resources.
 

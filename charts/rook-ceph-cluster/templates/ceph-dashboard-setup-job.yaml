@@ -7,9 +7,9 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-delete-policy: before-hook-creation
 spec:
-  ttlSecondsAfterFinished: 300
+  ttlSecondsAfterFinished: 3600
   template:
     spec:
       restartPolicy: OnFailure
@@ -43,6 +43,14 @@ spec:
 
               echo "Enabling OAuth2 SSO on Ceph Dashboard..."
               ceph dashboard sso enable oauth2
+
+              {{- if $proxy.ssoSetup.telemetryOptIn }}
+              echo "Opting in to Ceph telemetry..."
+              ceph telemetry on --license sharing-1-0
+              {{- else }}
+              echo "Opting out of Ceph telemetry..."
+              ceph telemetry off
+              {{- end }}
 
               DESIRED_USERS=(
               {{- range $proxy.ssoSetup.adminUsers }}

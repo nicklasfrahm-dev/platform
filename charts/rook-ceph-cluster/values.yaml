@@ -95,3 +95,6 @@ oauth2-proxy:
     # Names of the Rook-generated secret and configmap used to reach the MONs.
     monSecret: rook-ceph-mon
     monEndpointsConfigMap: rook-ceph-mon-endpoints
+    # Set to true to opt in to Ceph telemetry (requires accepting the sharing license).
+    # Defaults to false to suppress HEALTH_WARN "Telemetry requires re-opt-in".
+    telemetryOptIn: false

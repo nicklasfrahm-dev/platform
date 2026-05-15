@@ -83,6 +83,7 @@ All commits must follow the **Conventional Commits** specification.
 
 - **Always create a PR.** Never push commits directly to `main`. Branch protection is enforced — direct pushes will be rejected.
 - Create a branch, push it, and open a PR via `gh pr create`.
+- **Always squash merge.** All PRs must be squashed into a single commit before merging.
 
 ### Helm Charts
 

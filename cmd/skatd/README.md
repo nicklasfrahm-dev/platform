@@ -26,6 +26,8 @@ Key-value pairs stored under a namespace and name. Values are optionally encrypt
 
 ### Policies
 
+> **TODO:** Replace the claims-map matching model with [CEL](https://cel.dev) expressions, giving full programmatic control over subject matching and access rules (e.g. `claims.groups.exists(g, g == 'admins')`). `SKATD_DEFAULT_POLICIES` should accept newline-separated JSON objects (one policy per line) rather than a JSON array, to make it easier to compose policies in multi-line env vars and config maps.
+
 Policies grant access by binding OIDC subjects (identified by issuer + JWT claims) to a set of verbs and resources.
 
 ```json
@@ -62,7 +64,7 @@ All configuration is via environment variables.
 | `SKATD_SESSION_SECRET` | Yes | — | HMAC signing key for UI session cookies |
 | `SKATD_DATABASE_URI` | No | `memory://` | Storage backend URI (see [Storage](#storage)) |
 | `SKATD_DEFAULT_POLICIES` | No | `[]` | JSON array of `Policy` objects reconciled on every startup |
-| `SKATD_ENCRYPTION_KEY` | No | — | Passphrase for AES-256-GCM encryption of secret values at rest |
+| `SKATD_ENCRYPTION_KEY` | No | — | Passphrase for AES-256-GCM encryption of secret values at rest. **TODO:** support key slots for rotation: comma-separated `<slot>:<base64-key>` pairs (e.g. `2:dGhlIG5ld...,1:dGhlIG9sZ...`); the highest slot number is used for new encryptions, all slots are tried for decryption. |
 | `SKATD_EXTERNAL_URL` | No | `http://localhost:8080` | Public base URL, used to construct the PKCE redirect URI |
 | `SKATD_PORT` | No | `8080` | HTTP listen port |
 

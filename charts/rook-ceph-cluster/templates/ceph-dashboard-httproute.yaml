@@ -19,5 +19,5 @@ spec:
       backendRefs:
         - name: {{ printf "%s-oauth2-proxy" .Release.Name | quote }}
           namespace: {{ .Release.Namespace | quote }}
-          port: 4180
+          port: 80
 {{- end }}

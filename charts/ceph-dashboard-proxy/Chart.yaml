@@ -4,7 +4,7 @@ name: ceph-dashboard-proxy
 description: Deploy an OAuth2 proxy in front of the Ceph Dashboard.
 icon: https://upload.wikimedia.org/wikipedia/commons/0/07/Ceph_Logo_Stacked_RGB.png
 version: 0.1.0
-appVersion: "7.15.2"
+appVersion: "10.4.3"
 dependencies:
   - repository: https://oauth2-proxy.github.io/manifests
     name: oauth2-proxy

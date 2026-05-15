@@ -5,8 +5,8 @@ metadata:
   name: {{ printf "%s-sso-setup" .Release.Name | quote }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   ttlSecondsAfterFinished: 300
   template:
@@ -43,6 +43,12 @@ spec:
               echo "Enabling OAuth2 SSO on Ceph Dashboard..."
               ceph dashboard sso enable oauth2
 
+              DESIRED_USERS=(
+              {{- range .Values.ssoSetup.adminUsers }}
+                {{ . }}
+              {{- end }}
+              )
+
               {{- range .Values.ssoSetup.adminUsers }}
               echo "Ensuring admin user {{ . }} exists..."
               if ceph dashboard ac-user-show {{ . | quote }} > /dev/null 2>&1; then
@@ -52,6 +58,21 @@ spec:
                   ceph dashboard ac-user-create {{ . | quote }} -i /dev/stdin administrator
               fi
               {{- end }}
+
+              echo "Removing stale admin users..."
+              current_users=$(ceph dashboard ac-user-list --format json | \
+                python3 -c "import sys,json; [print(u) for u in json.load(sys.stdin)]")
+              while IFS= read -r user; do
+                [[ -z "$user" ]] && continue
+                found=false
+                for desired in "${DESIRED_USERS[@]}"; do
+                  [[ "$user" == "$desired" ]] && found=true && break
+                done
+                if [[ "$found" == "false" ]]; then
+                  echo "Removing stale user $user..."
+                  ceph dashboard ac-user-delete "$user"
+                fi
+              done <<< "$current_users"
 
               echo "SSO setup complete."
           env:

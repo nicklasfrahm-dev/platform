@@ -21,10 +21,17 @@ argocd:
       scopes: "[groups, email]"
       policy.default: ""
       policy.custom.csv: |
-        p, role:platform, applicationsets, *, */*, allow
         p, role:platform, applications, *, */*, allow
-        p, role:platform, clusters, get, *, allow
-        p, role:platform, repositories, get, *, allow
+        p, role:platform, applicationsets, *, */*, allow
+        p, role:platform, clusters, *, *, allow
+        p, role:platform, projects, *, *, allow
+        p, role:platform, repositories, *, *, allow
+        p, role:platform, accounts, *, *, allow
+        p, role:platform, certificates, *, *, allow
+        p, role:platform, gpgkeys, *, *, allow
+        p, role:platform, logs, *, */*, allow
+        p, role:platform, exec, *, */*, allow
+        p, role:platform, extensions, *, */*, allow
 
         g, nicklasfrahm-dev:platform, role:platform
     params:

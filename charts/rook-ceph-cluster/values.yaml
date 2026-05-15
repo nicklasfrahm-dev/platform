@@ -55,7 +55,7 @@ oauth2-proxy:
       - "*"
   extraArgs:
     - --provider=oidc
-    - --pkce-code-challenge-method=S256
+    - --code-challenge-method=S256
     - --oidc-issuer-url=https://auth.nicklasfrahm.dev
     - --client-secret=
     - --oidc-groups-claim=groups

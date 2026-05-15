@@ -67,7 +67,6 @@ oauth2-proxy:
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
-          codeChallengeMethod: S256
       upstreamConfig:
         upstreams:
           - id: dashboard
@@ -79,6 +78,7 @@ oauth2-proxy:
             - claimSource:
                 claim: access_token
   extraArgs:
+    - --code-challenge-method=S256
     - --skip-provider-button=true
   httpRoute:
     enabled: true

@@ -41,9 +41,6 @@ spec:
               key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
               EOF
 
-              echo "Enabling OAuth2 SSO on Ceph Dashboard..."
-              ceph dashboard sso enable oauth2
-
               DESIRED_USERS=(
               {{- range $proxy.ssoSetup.adminUsers }}
                 {{ . }}

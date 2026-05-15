@@ -57,7 +57,10 @@ oauth2-proxy:
     - --provider=oidc
     - --code-challenge-method=S256
     - --oidc-issuer-url=https://auth.nicklasfrahm.dev
-    - --client-secret=
+    - --client-id=ceph-dashboard
+    # oauth2-proxy requires a client secret even for public PKCE clients, /dev/null is the workaround:
+    # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
+    - --client-secret-file=/dev/null
     - --oidc-groups-claim=groups
     - --skip-provider-button=true
     - --pass-authorization-header=true

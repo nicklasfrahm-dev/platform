@@ -26,7 +26,7 @@ spec:
               MON_CONFIG="/etc/rook/mon-endpoints"
               KEYRING_FILE="/etc/ceph/keyring"
 
-              mon_endpoints=$(cat "${MON_CONFIG}" | sed 's/[a-z0-9_-]\+=//g')
+              mon_endpoints=$(sed 's/[a-z0-9_-]\+=//g' "${MON_CONFIG}")
 
               cat > "${CEPH_CONFIG}" <<EOF
               [global]
@@ -61,27 +61,32 @@ spec:
               {{- range $proxy.ssoSetup.adminUsers }}
               echo "Ensuring admin user {{ . }} exists..."
               if ceph dashboard ac-user-show {{ . | quote }} > /dev/null 2>&1; then
-                ceph dashboard ac-user-set-roles {{ . | quote }} administrator
+                echo "User {{ . }} already exists, updating roles..."
+                ceph dashboard ac-user-set-roles {{ . | quote }} administrator > /dev/null
               else
+                echo "Creating user {{ . }}..."
                 openssl rand -base64 32 | \
-                  ceph dashboard ac-user-create {{ . | quote }} -i /dev/stdin administrator
+                  ceph dashboard ac-user-create {{ . | quote }} -i /dev/stdin administrator > /dev/null
               fi
               {{- end }}
 
               echo "Removing stale admin users..."
-              current_users=$(ceph dashboard ac-user-list --format json | \
-                python3 -c "import sys,json; [print(u) for u in json.load(sys.stdin)]")
-              while IFS= read -r user; do
-                [[ -z "$user" ]] && continue
-                found=false
-                for desired in "${DESIRED_USERS[@]}"; do
-                  [[ "$user" == "$desired" ]] && found=true && break
-                done
-                if [[ "$found" == "false" ]]; then
-                  echo "Removing stale user $user..."
-                  ceph dashboard ac-user-delete "$user"
-                fi
-              done <<< "$current_users"
+              if raw_users=$(ceph dashboard ac-user-list 2>/dev/null); then
+                current_users=$(printf '%s' "$raw_users" | python3 -c "import sys,json; d=sys.stdin.read().strip(); [print(u.strip()) for u in (json.loads(d) if d.startswith('[') else d.splitlines()) if u.strip()]" 2>/dev/null) || current_users=""
+                while IFS= read -r user; do
+                  [[ -z "$user" ]] && continue
+                  found=false
+                  for desired in "${DESIRED_USERS[@]}"; do
+                    [[ "$user" == "$desired" ]] && found=true && break
+                  done
+                  if [[ "$found" == "false" ]]; then
+                    echo "Removing stale user: $user"
+                    ceph dashboard ac-user-delete "$user"
+                  fi
+                done <<< "$current_users"
+              else
+                echo "Warning: ac-user-list unavailable, skipping stale user removal."
+              fi
 
               echo "SSO setup complete."
           env:

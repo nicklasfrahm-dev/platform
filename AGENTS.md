@@ -84,6 +84,11 @@ All commits must follow the **Conventional Commits** specification.
 - **Always create a PR.** Never push commits directly to `main`. Branch protection is enforced — direct pushes will be rejected.
 - Create a branch, push it, and open a PR via `gh pr create`.
 
+### Helm Charts
+
+- **Always bump the chart version** (`version` in `Chart.yaml`) when making any change to a chart.
+- **Always update the deploy tag** (`tag` in `deploy/clusters/<cluster>/platform/<chart>.yml`) to match the new chart version.
+
 ### Examples
 
 - `feat(llm): add gemma4 deployment config`

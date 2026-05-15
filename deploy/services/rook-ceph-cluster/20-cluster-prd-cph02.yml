@@ -207,8 +207,7 @@ oauth2-proxy:
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
-          codeChallenge:
-            method: S256
+          codeChallengeMethod: S256
           allowedGroups:
             - nicklasfrahm-dev:platform
   resources:

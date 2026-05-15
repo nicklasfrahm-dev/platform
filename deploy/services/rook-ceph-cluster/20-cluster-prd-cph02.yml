@@ -1,6 +1,9 @@
 rook-ceph-cluster:
   operatorNamespace: "platform"
 
+  cephImage:
+    tag: v20.2.1
+
   cephClusterSpec:
     # To control where various services will be scheduled by kubernetes, use the placement configuration sections below.
     # The example under 'all' would have all services scheduled on kubernetes nodes labeled with 'role=storage-node' and
@@ -192,9 +195,6 @@ rook-ceph-cluster:
 
 oauth2-proxy:
   enabled: true
-  config:
-    upstreams:
-      - http://rook-ceph-mgr-dashboard:7000
   extraArgs:
     - --provider=oidc
     - --code-challenge-method=S256
@@ -204,8 +204,6 @@ oauth2-proxy:
     - --oidc-groups-claim=groups
     - --allowed-group=nicklasfrahm-dev:platform
     - --skip-provider-button=true
-    - --pass-authorization-header=true
-    - --set-xauthrequest=true
   resources:
     limits:
       memory: "128Mi"

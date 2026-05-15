@@ -1,5 +1,7 @@
 rook-ceph-cluster:
   enabled: true
+  cephImage:
+    tag: v20.2.1
   toolbox:
     enabled: true
     resources:
@@ -47,12 +49,23 @@ oauth2-proxy:
   ingress:
     enabled: false
   config:
-    clientID: ceph-dashboard
     existingSecret: ceph-dashboard-proxy
     requiredSecretKeys:
       - cookie-secret
     emailDomains:
       - "*"
+  alphaConfig:
+    enabled: true
+    configData:
+      upstreamConfig:
+        upstreams:
+          - id: dashboard
+            uri: http://rook-ceph-mgr-dashboard:7000
+            path: /
+      injectRequestHeaders:
+        - name: X-Access-Token
+          values:
+            - claim: access_token
   extraArgs:
     - --provider=oidc
     - --code-challenge-method=S256
@@ -63,8 +76,6 @@ oauth2-proxy:
     - --client-secret-file=/dev/null
     - --oidc-groups-claim=groups
     - --skip-provider-button=true
-    - --pass-authorization-header=true
-    - --set-xauthrequest=true
   httpRoute:
     enabled: true
     gateway:
@@ -74,7 +85,7 @@ oauth2-proxy:
   ssoSetup:
     enabled: true
     # Image must match the running Ceph cluster version.
-    image: quay.io/ceph/ceph:v19.2.3
+    image: quay.io/ceph/ceph:v20.2.1
     # GitHub usernames to pre-create as Ceph Dashboard administrators.
     adminUsers: []
     # Names of the Rook-generated secret and configmap used to reach the MONs.

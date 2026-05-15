@@ -74,12 +74,21 @@ oauth2-proxy:
             uri: http://rook-ceph-mgr-dashboard:7000
             path: /
       injectRequestHeaders:
-        - name: X-Access-Token
+        - name: X-Forwarded-User
           values:
             - claimSource:
-                claim: id_token
+                claim: user
+        - name: X-Forwarded-Email
+          values:
+            - claimSource:
+                claim: email
   extraArgs:
     - --skip-provider-button=true
+    - --reverse-proxy=true
+    - --set-xauthrequest=true
+    - --pass-access-token=true
+    - --pass-authorization-header=true
+    - --pass-user-headers=true
   httpRoute:
     enabled: true
     gateway:

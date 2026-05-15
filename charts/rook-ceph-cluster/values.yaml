@@ -85,10 +85,6 @@ oauth2-proxy:
   extraArgs:
     - --skip-provider-button=true
     - --reverse-proxy=true
-    - --set-xauthrequest=true
-    - --pass-access-token=true
-    - --pass-authorization-header=true
-    - --pass-user-headers=true
   httpRoute:
     enabled: true
     gateway:

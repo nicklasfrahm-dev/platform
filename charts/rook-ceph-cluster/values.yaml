@@ -60,13 +60,14 @@ oauth2-proxy:
       providers:
         - id: oidc
           provider: oidc
-          clientId: ceph-dashboard
+          clientID: ceph-dashboard
           # oauth2-proxy requires a client secret even for public PKCE clients, /dev/null is the workaround:
           # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
           clientSecretFile: /dev/null
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
+          code_challenge_method: S256
       upstreamConfig:
         upstreams:
           - id: dashboard
@@ -78,7 +79,6 @@ oauth2-proxy:
             - claimSource:
                 claim: access_token
   extraArgs:
-    - --code-challenge-method=S256
     - --skip-provider-button=true
   httpRoute:
     enabled: true

@@ -211,12 +211,10 @@ oauth2-proxy:
       cpu: "50m"
       memory: "128Mi"
   httpRoute:
-    enabled: true
     gateway:
       namespace: platform
       name: shared-http
     hostname: ceph.cph02.nicklasfrahm.dev
   ssoSetup:
-    enabled: true
     adminUsers:
       - nicklasfrahm

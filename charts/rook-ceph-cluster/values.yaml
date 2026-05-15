@@ -63,13 +63,13 @@ oauth2-proxy:
     - --pass-authorization-header=true
     - --set-xauthrequest=true
   httpRoute:
-    enabled: false
+    enabled: true
     gateway:
       namespace: platform
       name: shared-http
     hostname: ""
   ssoSetup:
-    enabled: false
+    enabled: true
     # Image must match the running Ceph cluster version.
     image: quay.io/ceph/ceph:v19.2.3
     # GitHub usernames to pre-create as Ceph Dashboard administrators.

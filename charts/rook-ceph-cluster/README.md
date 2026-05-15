@@ -26,8 +26,8 @@ When enabled, two additional sub-features can be opted into under the same key:
 
 | Key | Default | Purpose |
 |---|---|---|
-| `oauth2-proxy.httpRoute.enabled` | `false` | Expose the proxy via a Gateway API HTTPRoute |
-| `oauth2-proxy.ssoSetup.enabled` | `false` | Run a post-install/post-upgrade Job to configure Ceph Dashboard SSO |
+| `oauth2-proxy.httpRoute.enabled` | `true` | Expose the proxy via a Gateway API HTTPRoute |
+| `oauth2-proxy.ssoSetup.enabled` | `true` | Run a post-install/post-upgrade Job to configure Ceph Dashboard SSO |
 
 ### Cookie secret
 

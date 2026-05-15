@@ -90,6 +90,7 @@ All commits must follow the **Conventional Commits** specification.
 - **Always bump the chart version** (`version` in `Chart.yaml`) when making any change to a chart's templates or default values.
 - **Always update the deploy tag** (`tag` in `deploy/clusters/<cluster>/platform/<chart>.yml`) to match the new chart version.
 - **No bump needed** when only editing cluster-specific overrides under `deploy/services/` — those are values passed to an already-published chart version and do not change the chart itself.
+- **Never skip versions.** Before opening a PR, re-read the current `version` in `Chart.yaml` on `main` and increment from that value. Intermediate commits during development may use higher version numbers that get squashed away — always reconcile against `main` at PR time.
 
 ### Examples
 

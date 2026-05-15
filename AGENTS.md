@@ -72,12 +72,14 @@ All commits must follow the **Conventional Commits** specification.
 
 ### Rules
 
-- **Types**: `feat` (new feature), `fix` (bug fix)
-- **Scope**: Always required (e.g., `llm`, `ci`, `argocd`, `charts`)
+- **Types**: ONLY `feat` (new feature) or `fix` (bug fix). Never `chore` or any other type.
+- **Scope**: Always required. Must be one of:
+  - A directory name under `cmd/` (e.g. `cloud`, `nodeprofiler`, `tman`, `vllm-bench`)
+  - A hardcoded CI scope: `charts`, `ci`, `config`, `deps`, `tools`, `docs`, `llm`
 - **Description**: Written in imperative mood ("add feature", not "added" or "adds")
 - **PR Description**: NEVER include a test plan section, attribution to any AI assistant (Crush, OpenCode, Claude, etc.), or any other extra sections. A PR description must contain only a concise summary of the changes.
 
 ### Examples
 
 - `feat(llm): add gemma4 deployment config`
-- `fix(argocd): resolve authentication issue`
+- `fix(charts): expand ArgoCD RBAC platform role permissions`

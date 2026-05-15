@@ -62,20 +62,18 @@ oauth2-proxy:
     - --skip-provider-button=true
     - --pass-authorization-header=true
     - --set-xauthrequest=true
-
-httpRoute:
-  enabled: false
-  gateway:
-    namespace: platform
-    name: shared-http
-  hostname: ""
-
-ssoSetup:
-  enabled: false
-  # Image must match the running Ceph cluster version.
-  image: quay.io/ceph/ceph:v19.2.3
-  # GitHub usernames to pre-create as Ceph Dashboard administrators.
-  adminUsers: []
-  # Names of the Rook-generated secret and configmap used to reach the MONs.
-  monSecret: rook-ceph-mon
-  monEndpointsConfigMap: rook-ceph-mon-endpoints
+  httpRoute:
+    enabled: false
+    gateway:
+      namespace: platform
+      name: shared-http
+    hostname: ""
+  ssoSetup:
+    enabled: false
+    # Image must match the running Ceph cluster version.
+    image: quay.io/ceph/ceph:v19.2.3
+    # GitHub usernames to pre-create as Ceph Dashboard administrators.
+    adminUsers: []
+    # Names of the Rook-generated secret and configmap used to reach the MONs.
+    monSecret: rook-ceph-mon
+    monEndpointsConfigMap: rook-ceph-mon-endpoints

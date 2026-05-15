@@ -1,4 +1,5 @@
-{{- if .Values.httpRoute.enabled }}
+{{- $proxy := index .Values "oauth2-proxy" }}
+{{- if and $proxy.enabled $proxy.httpRoute.enabled }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -6,10 +7,10 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   parentRefs:
-    - namespace: {{ .Values.httpRoute.gateway.namespace | quote }}
-      name: {{ .Values.httpRoute.gateway.name | quote }}
+    - namespace: {{ $proxy.httpRoute.gateway.namespace | quote }}
+      name: {{ $proxy.httpRoute.gateway.name | quote }}
   hostnames:
-    - {{ .Values.httpRoute.hostname | quote }}
+    - {{ $proxy.httpRoute.hostname | quote }}
   rules:
     - matches:
         - path:

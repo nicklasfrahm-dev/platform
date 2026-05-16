@@ -65,6 +65,16 @@ cilium:
   gatewayAPI:
     enabled: false
 
+  # Enable Envoy daemonset for L7 network policies.
+  envoy:
+    enabled: true
+    securityContext:
+      capabilities:
+        envoy:
+          - NET_ADMIN
+          - PERFMON
+          - BPF
+
   # Enable hubble for network observability.
   # Docs: https://docs.cilium.io/en/latest/observability/hubble/hubble-ui/index.html
   hubble:

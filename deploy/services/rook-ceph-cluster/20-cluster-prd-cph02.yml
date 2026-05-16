@@ -194,7 +194,7 @@ rook-ceph-cluster:
             name: shared-http
 
 oauth2-proxy:
-  enabled: true
+  enabled: false
   alphaConfig:
     configData:
       providers:

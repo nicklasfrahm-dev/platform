@@ -1,6 +1,15 @@
-# Ceph
+# Storage
 
-This document covers the Ceph cluster configuration deployed via Rook and the SSO setup for the Ceph Dashboard.
+[rook-ceph](https://rook.io) is the storage operator for the platform. It provides a single control plane for all Ceph storage backends — block (RBD), filesystem (CephFS), and object (RadosGW) — so the same operator manages any future storage type without introducing additional components.
+
+Currently deployed backends:
+
+- **Ceph RBD** — block storage for `ReadWriteOnce` volumes.
+- **Rados Gateway (RGW)** — S3-compatible object storage.
+
+CephFS is intentionally not deployed; the platform avoids workloads that require `ReadWriteMany` (RWX) access.
+
+This document covers the cluster configuration and the SSO setup for the Ceph Dashboard.
 
 ## Cluster configuration
 

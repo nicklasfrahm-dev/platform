@@ -82,6 +82,11 @@ oauth2-proxy:
           values:
             - claimSource:
                 claim: email
+        - name: Authorization
+          values:
+            - prefix: "Bearer "
+              tokenSource:
+                token: id_token
   extraArgs:
     - --skip-provider-button=true
     - --reverse-proxy=true

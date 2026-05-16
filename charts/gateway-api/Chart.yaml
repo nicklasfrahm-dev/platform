@@ -1,7 +1,0 @@
-apiVersion: v2
-type: application
-name: gateway-api
-description: Deploy the Gateway API CRDs.
-icon: https://www.kubeblog.com/wp-content/uploads/2024/09/gateway-api-logo-1.png
-version: 1.0.1
-appVersion: "1.0.1"

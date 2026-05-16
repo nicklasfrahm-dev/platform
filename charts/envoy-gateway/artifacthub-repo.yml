@@ -1,7 +1,7 @@
 # References:
 # - https://artifacthub.io/docs/topics/repositories/container-images/#repository-metadata
 # - https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
-repositoryID: "d27574d9-98dc-4121-8908-4ff2bda2f8fb"
+repositoryID: "b4aaab4a-5e55-4ab8-a27c-1099e94b288c"
 owners:
   - name: Nicklas Frahm
     email: nicklas.frahm@gmail.com

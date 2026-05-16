@@ -61,24 +61,9 @@ cilium:
   nodeIPAM:
     enabled: true
 
-  # Enable cilium support for the Gateway API.
-  # Docs: https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/#gs-gateway-api
+  # Gateway API is handled by envoy-gateway.
   gatewayAPI:
-    enabled: true
-    enableAlpn: true
-
-  # Ensure that we can create gateways for 80 and 443.
-  # Docs: https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/#bind-to-privileged-port
-  envoy:
-    enabled: true
-    securityContext:
-      capabilities:
-        keepCapNetBindService: true
-        envoy:
-          - NET_BIND_SERVICE
-          - NET_ADMIN
-          - PERFMON
-          - BPF
+    enabled: false
 
   # Enable hubble for network observability.
   # Docs: https://docs.cilium.io/en/latest/observability/hubble/hubble-ui/index.html

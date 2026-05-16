@@ -3,8 +3,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ printf "%s-sso-setup" .Release.Name | quote }}
+  name: {{ printf "%s-ceph-dashboard-sso-setup" .Release.Name | quote }}
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
+    app.kubernetes.io/name: "ceph-dashboard"
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation
@@ -41,9 +46,14 @@ spec:
               key = $(cat /var/lib/rook-ceph-mon/secret.keyring)
               EOF
 
-              {{- if $proxy.ssoSetup.rolesPath }}
+              {{- $parts := list -}}
+              {{- range $proxy.ssoSetup.groupRoles -}}
+                {{- $part := printf "contains(groups[*], '%s') && `%s`" .group (.roles | toJson) -}}
+                {{- $parts = append $parts $part -}}
+              {{- end -}}
+              {{- if $parts }}
               ROLES_PATH=$(cat <<'ROLES_PATH_EOF'
-              {{ $proxy.ssoSetup.rolesPath }}
+              {{ join " || " $parts }} || `[]`
               ROLES_PATH_EOF
               )
               echo "Enabling OAuth2 SSO on Ceph Dashboard with roles_path..."
@@ -60,39 +70,6 @@ spec:
               echo "Opting out of Ceph telemetry..."
               ceph telemetry off
               {{- end }}
-
-              DESIRED_USERS=(
-              {{- range $proxy.ssoSetup.adminUsers }}
-                {{ . }}
-              {{- end }}
-              )
-
-              {{- range $proxy.ssoSetup.adminUsers }}
-              echo "Ensuring admin user {{ . }} exists..."
-              if ceph dashboard ac-user-show {{ . | quote }} > /dev/null 2>&1; then
-                echo "User {{ . }} already exists, updating roles..."
-                ceph dashboard ac-user-set-roles {{ . | quote }} administrator > /dev/null
-              else
-                echo "Creating user {{ . }}..."
-                openssl rand -base64 32 | \
-                  ceph dashboard ac-user-create {{ . | quote }} -i /dev/stdin administrator > /dev/null
-              fi
-              {{- end }}
-
-              echo "Removing stale admin users..."
-              current_users=$(ceph dashboard ac-user-show --format json | \
-                python3 -c "import sys,json; print('\n'.join(json.load(sys.stdin)))")
-              while IFS= read -r user; do
-                [[ -z "$user" ]] && continue
-                found=false
-                for desired in "${DESIRED_USERS[@]}"; do
-                  [[ "$user" == "$desired" ]] && found=true && break
-                done
-                if [[ "$found" == "false" ]]; then
-                  echo "Removing stale user: $user"
-                  ceph dashboard ac-user-delete "$user"
-                fi
-              done <<< "$current_users"
 
               echo "SSO setup complete."
           env:

@@ -2,7 +2,7 @@ apiVersion: v2
 type: application
 name: envoy-gateway
 description: Deploy Envoy Gateway as a Kubernetes-native API gateway.
-icon: https://www.envoyproxy.io/img/envoy-logo-notext.svg
+icon: https://www.envoyproxy.io/theme/images/envoy-logo.svg
 version: 0.1.0
 appVersion: "v1.8.0"
 dependencies:

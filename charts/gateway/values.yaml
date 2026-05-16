@@ -1,6 +1,11 @@
 gateway:
   name: "shared-http"
   className: "envoy-gateway"
+  proxyProtocol:
+    enabled: true
+    # Set to true only if not all upstream traffic sends the PROXY protocol
+    # header, e.g. during a migration. Breaks spec compliance.
+    optional: false
   tls:
     enabled: true
     issuer:

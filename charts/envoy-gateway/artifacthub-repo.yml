@@ -1,0 +1,15 @@
+# References:
+# - https://artifacthub.io/docs/topics/repositories/container-images/#repository-metadata
+# - https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+repositoryID: "b4aaab4a-5e55-4ab8-a27c-1099e94b288c"
+owners:
+  - name: Nicklas Frahm
+    email: nicklas.frahm@gmail.com
+# (optional) This may be useful to yank versions of packages.
+# It prevents packages from being indexed by Artifact Hub.
+# ignore:
+#   - name: package1
+#   - name: package2 # Exact match
+#     # (optional) Regular expression to select ignored versions.
+#     # When omitted, all versions are ignored.
+#     version: beta

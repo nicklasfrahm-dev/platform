@@ -1,0 +1,80 @@
+{{- $proxy := index .Values "oauth2-proxy" }}
+{{- if $proxy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-jti-injector" .Release.Name | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
+    app.kubernetes.io/name: "ceph-dashboard"
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+data:
+  nginx.conf: |
+    worker_processes 1;
+    error_log /dev/stderr warn;
+    pid /tmp/nginx.pid;
+
+    events {
+      worker_connections 64;
+    }
+
+    http {
+      access_log /dev/stdout;
+      client_body_temp_path /tmp/client_body;
+      proxy_temp_path /tmp/proxy;
+
+      server {
+        listen 8080;
+
+        location / {
+          rewrite_by_lua_block {
+            local token = ngx.req.get_headers()["X-Access-Token"]
+            if not token then return end
+
+            local parts = {}
+            for p in token:gmatch("[^.]+") do
+              table.insert(parts, p)
+            end
+            if #parts ~= 3 then return end
+
+            local function b64url_decode(s)
+              s = s:gsub('-', '+'):gsub('_', '/')
+              local pad = 4 - (#s % 4)
+              if pad < 4 then s = s .. string.rep('=', pad) end
+              return ngx.decode_base64(s)
+            end
+
+            local function b64url_encode(s)
+              return ngx.encode_base64(s):gsub('+', '-'):gsub('/', '_'):gsub('=', '')
+            end
+
+            local cjson = require "cjson.safe"
+            local payload_json = b64url_decode(parts[2])
+            if not payload_json then return end
+
+            local payload = cjson.decode(payload_json)
+            if not payload then return end
+
+            local modified = false
+            if not payload.jti then
+              payload.jti = ngx.md5(token)
+              modified = true
+            end
+            if payload.preferred_username then
+              payload.sub = payload.preferred_username
+              modified = true
+            end
+            if not modified then return end
+
+            ngx.req.set_header("X-Access-Token",
+              parts[1] .. "." .. b64url_encode(cjson.encode(payload)) .. "." .. parts[3])
+          }
+
+          proxy_pass {{ $proxy.dashboardUpstream }};
+          proxy_set_header Host $http_host;
+        }
+      }
+    }
+{{- end }}

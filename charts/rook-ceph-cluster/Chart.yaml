@@ -3,7 +3,7 @@ name: rook-ceph-cluster
 description: A Helm chart to deploy a Rook Ceph Cluster
 icon: https://upload.wikimedia.org/wikipedia/commons/0/07/Ceph_Logo_Stacked_RGB.png
 type: application
-version: 0.3.16
+version: 0.3.17
 appVersion: "20.2.1"
 dependencies:
   - repository: https://charts.rook.io/release

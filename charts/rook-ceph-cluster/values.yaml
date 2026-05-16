@@ -65,49 +65,81 @@ oauth2-proxy:
           # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
           clientSecretFile: /dev/null
           oidcConfig:
-            issuerURL: https://auth.nicklasfrahm.dev
+            # URL of the OIDC issuer (e.g. https://dex.example.com).
+            issuerURL: ""
             groupsClaim: groups
           code_challenge_method: S256
+          # Restrict login to users in specific groups. Users outside these
+          # groups are denied at the proxy before reaching Ceph Dashboard.
+          # allowedGroups:
+          #   - org:team
       upstreamConfig:
         upstreams:
           - id: dashboard
-            uri: http://rook-ceph-mgr-dashboard:7000
+            uri: http://localhost:8080
             path: /
       injectRequestHeaders:
-        - name: X-Forwarded-User
+        - name: X-Access-Token
           values:
             - claimSource:
-                claim: user
-        - name: X-Forwarded-Email
-          values:
-            - claimSource:
-                claim: email
-        - name: Authorization
-          values:
-            - prefix: "Bearer "
-              tokenSource:
-                token: id_token
+                claim: access_token
   extraArgs:
     - --skip-provider-button=true
     - --reverse-proxy=true
+  extraContainers:
+    - name: jti-injector
+      image: openresty/openresty:1.27.1.2-alpine
+      ports:
+        - containerPort: 8080
+      resources:
+        limits:
+          memory: "64Mi"
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+      volumeMounts:
+        - name: jti-injector-config
+          mountPath: /usr/local/openresty/nginx/conf/nginx.conf
+          subPath: nginx.conf
+  extraVolumes:
+    - name: jti-injector-config
+      configMap:
+        # Must match {{ .Release.Name }}-jti-injector from the chart template.
+        name: rook-ceph-cluster-jti-injector
+  resources:
+    limits:
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+  # Public hostname for the Ceph Dashboard (required when enabled).
   httpRoute:
     enabled: true
     gateway:
       namespace: platform
       name: shared-http
     hostname: ""
+  # Upstream Ceph Dashboard service that the jti-injector sidecar proxies to.
+  dashboardUpstream: http://rook-ceph-mgr-dashboard:7000
   ssoSetup:
     enabled: true
     # Image must match the running Ceph cluster version.
     image: quay.io/ceph/ceph:v20.2.1
-    # GitHub usernames to pre-create as Ceph Dashboard administrators.
-    adminUsers: []
     # Names of the Rook-generated secret and configmap used to reach the MONs.
     monSecret: rook-ceph-mon
     monEndpointsConfigMap: rook-ceph-mon-endpoints
     # Set to true to opt in to Ceph telemetry (requires accepting the sharing license).
-    # Defaults to false to suppress HEALTH_WARN "Telemetry requires re-opt-in".
     telemetryOptIn: false
-    # JMESPath expression to extract roles from the JWT. If empty, role extraction is skipped.
-    # Example: contains(groups[*], 'org:team') && `["administrator"]` || `[]`
-    rolesPath: ""
+    # Maps OIDC groups to Ceph Dashboard roles. Groups are evaluated in order.
+    # Available roles: administrator, read-only, block-manager, rgw-manager,
+    #                  cluster-manager, pool-manager, cephfs-manager
+    # Example:
+    # groupRoles:
+    #   - group: org:admins
+    #     roles:
+    #       - administrator
+    #   - group: org:storage-team
+    #     roles:
+    #       - read-only
+    #       - pool-manager
+    groupRoles: []

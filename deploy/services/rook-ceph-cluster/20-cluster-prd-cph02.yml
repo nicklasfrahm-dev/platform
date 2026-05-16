@@ -194,15 +194,13 @@ rook-ceph-cluster:
             name: shared-http
 
 oauth2-proxy:
-  enabled: false
+  enabled: true
   alphaConfig:
     configData:
       providers:
         - id: oidc
           provider: oidc
           clientID: ceph-dashboard
-          # oauth2-proxy requires a client secret even for public PKCE clients, /dev/null is the workaround:
-          # https://github.com/oauth2-proxy/oauth2-proxy/issues/1714
           clientSecretFile: /dev/null
           oidcConfig:
             issuerURL: https://auth.nicklasfrahm.dev
@@ -212,17 +210,16 @@ oauth2-proxy:
             - nicklasfrahm-dev:platform
   resources:
     limits:
+      cpu: "50m"
       memory: "128Mi"
     requests:
       cpu: "50m"
       memory: "128Mi"
   httpRoute:
-    gateway:
-      namespace: platform
-      name: shared-http
     hostname: ceph.cph02.nicklasfrahm.dev
   ssoSetup:
     telemetryOptIn: true
-    adminUsers:
-      - nicklasfrahm
-    rolesPath: "contains(groups[*], 'nicklasfrahm-dev:platform') && `[\"administrator\"]` || `[]`"
+    groupRoles:
+      - group: nicklasfrahm-dev:platform
+        roles:
+          - administrator

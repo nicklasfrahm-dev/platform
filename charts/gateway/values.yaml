@@ -1,6 +1,6 @@
 gateway:
   name: "shared-http"
-  className: "cilium"
+  className: "envoy-gateway"
   tls:
     enabled: true
     issuer:

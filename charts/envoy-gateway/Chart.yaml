@@ -1,0 +1,25 @@
+apiVersion: v2
+type: application
+name: envoy-gateway
+description: Deploy Envoy Gateway as a Kubernetes-native API gateway.
+icon: https://www.envoyproxy.io/img/envoy-logo-notext.svg
+version: 0.1.0
+appVersion: "v1.8.0"
+dependencies:
+  - repository: oci://docker.io/envoyproxy
+    name: gateway-crds-helm
+    version: v1.8.0
+    condition: gateway-crds-helm.enabled
+    tags:
+      - networking
+      - gateway
+      - envoy
+      - crds
+  - repository: oci://docker.io/envoyproxy
+    name: gateway-helm
+    version: v1.8.0
+    condition: gateway-helm.enabled
+    tags:
+      - networking
+      - gateway
+      - envoy

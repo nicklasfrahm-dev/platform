@@ -43,6 +43,7 @@ dex:
       - id: ceph-dashboard
         name: "Ceph Dashboard"
         public: true
+        allowOfflineAccess: true
         redirectURIs:
           - "https://ceph.cph02.nicklasfrahm.dev/oauth2/callback"
   envVars:

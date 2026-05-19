@@ -206,6 +206,7 @@ oauth2-proxy:
             issuerURL: https://auth.nicklasfrahm.dev
             groupsClaim: groups
           code_challenge_method: S256
+          scope: "openid email profile offline_access"
           allowedGroups:
             - nicklasfrahm-dev:platform
   resources:
@@ -215,6 +216,10 @@ oauth2-proxy:
     requests:
       cpu: "50m"
       memory: "128Mi"
+  extraArgs:
+    - --skip-provider-button=true
+    - --reverse-proxy=true
+    - --redirect-url=https://ceph.cph02.nicklasfrahm.dev/oauth2/callback
   httpRoute:
     hostname: ceph.cph02.nicklasfrahm.dev
   ssoSetup:

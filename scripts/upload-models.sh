@@ -38,32 +38,52 @@ echo "    Bucket: ${BUCKET_NAME}"
 echo "==> Configuring mc alias 'ceph'..."
 ${MC} alias set ceph "${S3_ENDPOINT}" "${ACCESS_KEY}" "${SECRET_KEY}"
 
-# 5. Stream each model file from HuggingFace directly into the bucket
-declare -A MODELS=(
-  ["cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"]="gemma-4-26b-a4b-awq-4bit"
-  ["Qwen/Qwen2.5-Coder-7B-Instruct-AWQ"]="qwen25-coder-7b-instruct-awq"
-)
+WIPE=false
+HF_REPO=""
 
-for HF_REPO in "${!MODELS[@]}"; do
-  TARGET_NAME="${MODELS[$HF_REPO]}"
-  DEST="ceph/${BUCKET_NAME}/${TARGET_NAME}"
-
-  echo "==> Fetching file list for ${HF_REPO}..."
-  FILES=$(curl -sf "https://huggingface.co/api/models/${HF_REPO}" \
-    -H "Authorization: Bearer ${HF_TOKEN}" \
-    | jq -r '.siblings[].rfilename')
-
-  echo "    Found $(echo "${FILES}" | wc -l) files."
-
-  while IFS= read -r FILE; do
-    URL="https://huggingface.co/${HF_REPO}/resolve/main/${FILE}"
-    echo "  -> ${FILE}"
-    curl -sfL "${URL}" \
-      -H "Authorization: Bearer ${HF_TOKEN}" \
-      | ${MC} pipe "${DEST}/${FILE}"
-  done <<< "${FILES}"
-
-  echo "    Done: ${HF_REPO} -> s3://${BUCKET_NAME}/${TARGET_NAME}/"
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --wipe)
+      WIPE=true
+      shift
+      ;;
+    *)
+      HF_REPO="$1"
+      shift
+      ;;
+  esac
 done
 
-echo "==> All models uploaded successfully."
+if [[ -z "${HF_REPO}" ]]; then
+  echo "Usage: $0 [--wipe] <HF_REPO>" >&2
+  exit 1
+fi
+
+# 5. Stream model file from HuggingFace directly into the bucket
+# We will use a naming convention derived from the HF repo name
+TARGET_NAME=$(echo "${HF_REPO}" | sed 's/.*\///; s/\//-/g' | tr '[:upper:]' '[:lower:]')
+DEST="ceph/${BUCKET_NAME}/${TARGET_NAME}"
+
+if [ "$WIPE" = true ]; then
+  echo "==> Wiping existing data for ${TARGET_NAME}..."
+  ${MC} rm --recursive --force "${DEST}/" 2>/dev/null || true
+fi
+
+echo "==> Fetching file list for ${HF_REPO}..."
+FILES=$(curl -sf "https://huggingface.co/api/models/${HF_REPO}" \
+  -H "Authorization: Bearer ${HF_TOKEN}" \
+  | jq -r '.siblings[].rfilename')
+
+echo "    Found $(echo "${FILES}" | wc -l) files."
+
+while IFS= read -r FILE; do
+  URL="https://huggingface.co/${HF_REPO}/resolve/main/${FILE}"
+  echo "  -> ${FILE}"
+  curl -sfL "${URL}" \
+    -H "Authorization: Bearer ${HF_TOKEN}" \
+    | ${MC} pipe "${DEST}/${FILE}"
+done <<< "${FILES}"
+
+echo "    Done: ${HF_REPO} -> s3://${BUCKET_NAME}/${TARGET_NAME}/"
+
+echo "==> Model uploaded successfully."

@@ -1,6 +1,6 @@
 runtime:
   vllm:
-    version: "v0.20.0"
+    version: "v0.20.2"
 
 gpu:
   name: rtx3090
@@ -50,6 +50,16 @@ model:
         - "--max-model-len=51200"
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=qwen3_coder"
+    # Untested: RTX 3090 (24GB)
+    qwen35-opus46:
+      modelId: "cpatonn/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-AWQ-4bit"
+      servedModelName: "qwen35-opus46"
+      args:
+        - "--max-model-len=24000"
+        - "--quantization=compressed-tensors"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+        # - "--kv-cache-dtype=k8v4"
     # Untested: RTX 3090 (24GB), 17.2 GiB weights may leave little room for KV cache.
     glm47-flash:
       modelId: "cyankiwi/GLM-4.7-Flash-AWQ-4bit"
@@ -59,8 +69,6 @@ model:
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=glm47"
         - "--reasoning-parser=glm45"
-      vllm:
-        version: "gemma4"
     # Untested: RTX 3090 (24GB)
     qwen25-coder-32b:
       modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"

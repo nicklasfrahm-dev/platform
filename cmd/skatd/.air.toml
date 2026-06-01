@@ -1,0 +1,30 @@
+# Air configuration for the skatd service.
+# Run from the repository root: air -c cmd/skatd/.air.toml
+
+root      = "."
+tmp_dir   = "bin"
+
+[build]
+  cmd          = "go build -o bin/skatd ./cmd/skatd"
+  entrypoint   = ["./bin/skatd"]
+  args_bin     = ["serve"]
+  include_dir  = ["."]
+  include_ext  = ["go", "html"]
+  exclude_dir  = ["bin", "vendor", ".git"]
+  exclude_regex = ["_test\\.go$"]
+  delay        = 500
+  kill_delay   = "2s"
+  log          = "bin/build-errors.log"
+  send_interrupt = true
+  stop_on_error = true
+
+[log]
+  time      = false
+  main_only = true
+
+[misc]
+  clean_on_exit = true
+
+[screen]
+  clear_on_rebuild = true
+  keep_scroll      = true

@@ -1,0 +1,28 @@
+services:
+  skatd:
+    profiles: [dev]
+    build:
+      dockerfile_inline: |
+        FROM golang:1.26.3-trixie
+        RUN go install github.com/air-verse/air@latest
+    working_dir: /app
+    entrypoint: ["air"]
+    command: ["-c", "cmd/skatd/.air.toml"]
+    volumes:
+      - .:/app
+      - skatd-go-build:/root/.cache/go-build
+    ports:
+      - "8080:8080"
+    environment:
+      GOFLAGS: -buildvcs=false
+      SKATD_OIDC_ISSUER_URL: ${SKATD_OIDC_ISSUER_URL}
+      SKATD_OIDC_CLIENT_ID: ${SKATD_OIDC_CLIENT_ID}
+      SKATD_SESSION_SECRET: ${SKATD_SESSION_SECRET}
+      SKATD_EXTERNAL_URL: ${SKATD_EXTERNAL_URL:-http://localhost:8080}
+      SKATD_DATABASE_URI: ${SKATD_DATABASE_URI:-memory://}
+      SKATD_ENCRYPTION_KEY: ${SKATD_ENCRYPTION_KEY:-}
+      SKATD_DEFAULT_POLICIES: ${SKATD_DEFAULT_POLICIES:-}
+      LOG_FORMAT: console
+
+volumes:
+  skatd-go-build:

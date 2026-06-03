@@ -1,0 +1,18 @@
+{{- if .Values.auth.enabled }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .Release.Name }}-auth
+  namespace: {{ .Release.Namespace }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .Release.Name }}-route
+  jwt:
+    providers:
+      - name: dex
+        issuer: {{ .Values.auth.issuer | quote }}
+        remoteJWKS:
+          uri: {{ printf "%s/keys" .Values.auth.issuer | quote }}
+{{- end }}

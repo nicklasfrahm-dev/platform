@@ -115,3 +115,7 @@ route:
   gateway:
     name: shared-http
     namespace: platform
+
+auth:
+  enabled: true
+  issuer: "https://auth.nicklasfrahm.dev"

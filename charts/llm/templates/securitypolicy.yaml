@@ -16,7 +16,7 @@ spec:
       - name: {{ $name | quote }}
         issuer: {{ $provider.issuer | quote }}
         remoteJWKS:
-          uri: {{ printf "%s/keys" $provider.issuer | quote }}
+          uri: {{ $provider.jwksUri | default (printf "%s/keys" $provider.issuer) | quote }}
       {{- end }}
       {{- end }}
 {{- end }}

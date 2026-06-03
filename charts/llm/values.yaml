@@ -122,3 +122,7 @@ auth:
     dex:
       enabled: true
       issuer: "https://auth.nicklasfrahm.dev"
+    kubernetes:
+      enabled: true
+      issuer: "https://kubernetes.default.svc.cluster.local"
+      jwksUri: "https://oidc.cph02.nicklasfrahm.dev/openid/v1/jwks"

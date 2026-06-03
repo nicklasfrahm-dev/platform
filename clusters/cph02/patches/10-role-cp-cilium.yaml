@@ -91,13 +91,8 @@ cluster:
                     - /bin/sh
                     - -c
                     - |
-                      helm upgrade gateway-api oci://ghcr.io/nicklasfrahm-dev/charts/gateway-api \
-                        --install \
-                        --namespace kube-system
-                      helm upgrade cilium oci://ghcr.io/nicklasfrahm-dev/charts/cilium \
-                        --install \
-                        --namespace kube-system \
-                        --set cilium.operator.replicas=1
+                      helm template cilium oci://ghcr.io/nicklasfrahm-dev/charts/cilium \
+                        --namespace kube-system | kubectl apply -f -
 
 machine:
   nodeLabels:

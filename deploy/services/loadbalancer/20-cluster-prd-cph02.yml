@@ -14,3 +14,5 @@ loadBalancer:
         default:
           enabled: true
           cidr: 172.29.0.0/28
+          start: 172.29.0.1
+          stop: 172.29.0.14

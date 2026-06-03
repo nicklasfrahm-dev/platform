@@ -11,8 +11,10 @@ spec:
       name: {{ .Release.Name }}-route
   jwt:
     providers:
-      - name: dex
-        issuer: {{ .Values.auth.issuer | quote }}
+      {{- range $name, $provider := .Values.auth.providers }}
+      - name: {{ $name | quote }}
+        issuer: {{ $provider.issuer | quote }}
         remoteJWKS:
-          uri: {{ printf "%s/keys" .Values.auth.issuer | quote }}
+          uri: {{ printf "%s/keys" $provider.issuer | quote }}
+      {{- end }}
 {{- end }}

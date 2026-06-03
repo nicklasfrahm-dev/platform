@@ -118,4 +118,6 @@ route:
 
 auth:
   enabled: true
-  issuer: "https://auth.nicklasfrahm.dev"
+  providers:
+    dex:
+      issuer: "https://auth.nicklasfrahm.dev"

@@ -120,4 +120,5 @@ auth:
   enabled: true
   providers:
     dex:
+      enabled: true
       issuer: "https://auth.nicklasfrahm.dev"

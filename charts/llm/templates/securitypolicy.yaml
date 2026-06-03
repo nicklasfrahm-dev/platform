@@ -12,9 +12,11 @@ spec:
   jwt:
     providers:
       {{- range $name, $provider := .Values.auth.providers }}
+      {{- if $provider.enabled }}
       - name: {{ $name | quote }}
         issuer: {{ $provider.issuer | quote }}
         remoteJWKS:
           uri: {{ printf "%s/keys" $provider.issuer | quote }}
+      {{- end }}
       {{- end }}
 {{- end }}

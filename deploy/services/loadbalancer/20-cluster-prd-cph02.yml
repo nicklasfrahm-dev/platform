@@ -12,7 +12,16 @@ loadBalancer:
       enabled: true
       blocks:
         default:
+          enabled: false
+        b1:
           enabled: true
-          cidr: 172.29.0.0/28
-          start: 172.29.0.1
-          stop: 172.29.0.14
+          cidr: 172.29.0.1/32
+        b2:
+          enabled: true
+          cidr: 172.29.0.2/31
+        b3:
+          enabled: true
+          cidr: 172.29.0.4/30
+        b4:
+          enabled: true
+          cidr: 172.29.0.8/29

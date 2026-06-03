@@ -1,12 +1,2 @@
-gateway-crds-helm:
-  enabled: true
-  crds:
-    gatewayAPI:
-      enabled: true
-      # Available options: standard, experimental
-      channel: experimental
-    envoyGateway:
-      enabled: true
-
 gateway-helm:
   enabled: true

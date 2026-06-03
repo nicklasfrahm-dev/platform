@@ -115,3 +115,13 @@ route:
   gateway:
     name: shared-http
     namespace: platform
+
+auth:
+  enabled: true
+  providers:
+    dex:
+      enabled: true
+      issuer: "https://auth.nicklasfrahm.dev"
+    cph02:
+      enabled: true
+      jwksUri: "https://oidc.cph02.nicklasfrahm.dev/openid/v1/jwks"

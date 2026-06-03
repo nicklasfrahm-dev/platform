@@ -1,0 +1,24 @@
+{{- if .Values.auth.enabled }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .Release.Name }}-auth
+  namespace: {{ .Release.Namespace }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ .Release.Name }}-route
+  jwt:
+    providers:
+      {{- range $name, $provider := .Values.auth.providers }}
+      {{- if $provider.enabled }}
+      - name: {{ $name | quote }}
+        {{- if $provider.issuer }}
+        issuer: {{ $provider.issuer | quote }}
+        {{- end }}
+        remoteJWKS:
+          uri: {{ $provider.jwksUri | default (printf "%s/keys" $provider.issuer) | quote }}
+      {{- end }}
+      {{- end }}
+{{- end }}

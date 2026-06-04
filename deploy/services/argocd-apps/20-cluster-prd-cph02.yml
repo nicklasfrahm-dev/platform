@@ -1,7 +1,5 @@
 cluster: prd-cph02
 
 tenants:
-  axon:
-    enabled: true
   kommodity:
     enabled: true

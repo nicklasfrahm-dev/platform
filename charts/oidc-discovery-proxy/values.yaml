@@ -1,8 +1,0 @@
-oidc-discovery-proxy:
-  gateway:
-    enabled: true
-    name: shared-http
-    namespace: platform
-  host:
-    domain: nicklasfrahm.dev
-    prefixes: []

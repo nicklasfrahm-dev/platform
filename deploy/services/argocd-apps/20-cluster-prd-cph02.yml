@@ -5,3 +5,5 @@ tenants:
     enabled: true
   kommodity:
     enabled: true
+  llm:
+    enabled: true

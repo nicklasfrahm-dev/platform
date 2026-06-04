@@ -1,4 +1,0 @@
-oidc-discovery-proxy:
-  host:
-    prefixes:
-      - oidc.cph02

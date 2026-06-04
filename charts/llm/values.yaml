@@ -100,6 +100,23 @@ model:
         - "--language-model-only"
         - "--reasoning-parser=qwen3"
         - "--tool-call-parser=qwen3_coder"
+    # Untested: RTX 3090 (24GB). Mixed W4/W8 AutoRound (experts INT4, non-experts INT8).
+    # MTP head included — qwen3_next_mtp speculative decoding possible but not enabled
+    # here due to VRAM pressure. Enable with:
+    #   --speculative-config={"method":"qwen3_next_mtp","num_speculative_tokens":1}
+    # and reduce --max-model-len accordingly if OOM.
+    # Known: infinite-loop risk on some inputs (Intel upstream issue, partially mitigated).
+    qwen36-35b-mixed:
+      modelId: "Intel/Qwen3.6-35B-A3B-int4-mixed-AutoRound"
+      servedModelName: "qwen36-35b-mixed"
+      args:
+        - "--max-model-len=32768"
+        - "--quantization=compressed-tensors"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+        - "--enable-chunked-prefill"
+        - "--max-num-batched-tokens=8192"
+        - "--max-cudagraph-capture-size=256"
     # Untested: RTX 3090 (24GB)
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"

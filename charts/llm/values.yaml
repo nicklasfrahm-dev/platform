@@ -125,3 +125,10 @@ auth:
     cph02:
       enabled: true
       jwksUri: "https://oidc.cph02.nicklasfrahm.dev/openid/v1/jwks"
+  credentials:
+    # Each enabled entry creates a ServiceAccount and a long-lived
+    # ServiceAccountToken Secret, both named "<release-name>-<key>".
+    # The resulting token is a Kubernetes service account JWT that can be
+    # used as a Bearer token via the cph02 OIDC issuer (see auth.providers.cph02).
+    # Ignored when auth.enabled is false.
+    example: false

@@ -6,7 +6,7 @@ kserve:
       gateway:
         ingressGateway:
           enableGatewayApi: true
-          kserveGateway: platform/shared-http
+          kserveGateway: platform/public-web-gateway
 
 kserve-crd:
   enabled: true

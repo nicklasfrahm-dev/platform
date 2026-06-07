@@ -35,9 +35,10 @@ helm install my-gateway oci://ghcr.io/nicklasfrahm-dev/charts/gateway -n kube-sy
 
 ### Gateway Configuration
 
+> The `Gateway` (and its supporting `EnvoyProxy`/`ClientTrafficPolicy` resources) take their name from the Helm release name, e.g. `helm install my-gateway ...` creates a `Gateway` named `my-gateway`. Reference that name in `parentRefs` of `HTTPRoute` resources.
+
 | Parameter                 | Description                                     | Default                  |
 | ------------------------- | ----------------------------------------------- | ------------------------ |
-| `gateway.name`            | Name of the Gateway resource                    | `shared-http`            |
 | `gateway.className`       | Gateway class name                              | `cilium`                 |
 | `gateway.tls.enabled`     | Enable HTTPS listener and TLS certificates      | `true`                   |
 | `gateway.tls.issuer.kind` | cert-manager issuer kind (Issuer/ClusterIssuer) | `Issuer`                 |
@@ -63,7 +64,6 @@ helm install my-gateway oci://ghcr.io/nicklasfrahm-dev/charts/gateway -n kube-sy
 
 ```yaml
 gateway:
-  name: "my-gateway"
   className: "cilium"
   hostnames:
     - "api.example.com"
@@ -74,7 +74,6 @@ gateway:
 
 ```yaml
 gateway:
-  name: "staging-gateway"
   className: "cilium"
   tls:
     enabled: true
@@ -95,7 +94,6 @@ issuers:
 
 ```yaml
 gateway:
-  name: "shared-gateway"
   className: "istio"
   tls:
     enabled: true
@@ -126,7 +124,7 @@ metadata:
   namespace: my-app
 spec:
   parentRefs:
-    - name: shared-http
+    - name: my-gateway
       namespace: kube-system
   hostnames:
     - "api.example.com"

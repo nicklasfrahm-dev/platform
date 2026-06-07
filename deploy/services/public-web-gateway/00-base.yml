@@ -1,0 +1,4 @@
+gateway:
+  infrastructure:
+    labels:
+      serving.kserve.io/gateway: public-web-gateway

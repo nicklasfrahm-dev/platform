@@ -6,7 +6,7 @@ description: |
   and scalable way to deploy, manage, and monitor ML models in production.
 type: application
 icon: https://kserve.github.io/website/img/kserve-logo.png
-version: 1.0.1
+version: 1.0.2
 appVersion: "v0.16.0"
 dependencies:
   - repository: oci://ghcr.io/kserve/charts

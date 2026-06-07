@@ -22,7 +22,7 @@ expose:
     stripPrefix: false
 
 gateway:
-  name: "shared-http"
+  name: "public-web-gateway"
   namespace: "platform"
 
 service:

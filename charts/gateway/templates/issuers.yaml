@@ -22,6 +22,6 @@ spec:
             parentRefs:
               - kind: Gateway
                 namespace: {{ $.Release.Namespace | quote }}
-                name: {{ $.Values.gateway.name | default "shared-http" | quote }}
+                name: {{ $.Release.Name | quote }}
 {{- end }}
 {{- end }}

@@ -10,7 +10,7 @@ grafana:
       hostnames:
         - grafana.nicklasfrahm.dev
       parentRefs:
-        - name: shared-http
+        - name: public-web-gateway
           namespace: platform
   envValueFrom:
     GF_DATABASE_PASSWORD:

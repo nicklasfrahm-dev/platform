@@ -113,7 +113,7 @@ model:
 route:
   hostname: "llm.cph02.nicklasfrahm.dev"
   gateway:
-    name: shared-http
+    name: public-web-gateway
     namespace: platform
 
 auth:

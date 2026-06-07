@@ -47,7 +47,7 @@ ingress:
 httpRoute:
   enabled: false
   gateway:
-    name: shared-http
+    name: public-web-gateway
     # Optional: specify if gateway is in a different namespace
     namespace: ""
   hostnames:

@@ -64,5 +64,5 @@ httpRoute:
   enabled: true
   gateway:
     namespace: platform
-    name: shared-http
+    name: public-web-gateway
   hostname: "auth.nicklasfrahm.dev"

@@ -1,6 +1,6 @@
 # Configure the gateway to use.
 gateway:
-  name: shared-http
+  name: public-web-gateway
   namespace: platform
 
 # Configure the endpoint of the redirect.

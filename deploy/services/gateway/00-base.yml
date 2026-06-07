@@ -1,4 +1,0 @@
-gateway:
-  infrastructure:
-    labels:
-      serving.kserve.io/gateway: shared-http

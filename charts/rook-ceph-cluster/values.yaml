@@ -117,7 +117,7 @@ oauth2-proxy:
     enabled: true
     gateway:
       namespace: platform
-      name: shared-http
+      name: public-web-gateway
     hostname: ""
   # Upstream Ceph Dashboard service that the jti-injector sidecar proxies to.
   dashboardUpstream: http://rook-ceph-mgr-dashboard:7000

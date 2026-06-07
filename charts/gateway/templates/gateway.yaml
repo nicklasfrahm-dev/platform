@@ -1,7 +1,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ .Values.gateway.name | quote }}
+  name: {{ .Release.Name | quote }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
@@ -46,7 +46,7 @@ spec:
     parametersRef:
       group: gateway.envoyproxy.io
       kind: EnvoyProxy
-      name: {{ .Values.gateway.name | quote }}
+      name: {{ .Release.Name | quote }}
     {{- if $.Values.gateway.infrastructure.labels }}
     labels:
       {{- toYaml $.Values.gateway.infrastructure.labels | nindent 6 }}

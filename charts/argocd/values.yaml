@@ -47,5 +47,5 @@ httpRoute:
   enabled: true
   gateway:
     namespace: platform
-    name: shared-http
+    name: public-web-gateway
   hostname: "REPLACE_ME.argocd.example.com"

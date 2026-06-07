@@ -191,7 +191,7 @@ rook-ceph-cluster:
           pathType: PathPrefix
         parentRefs:
           - namespace: platform
-            name: shared-http
+            name: public-web-gateway
 
 oauth2-proxy:
   enabled: true

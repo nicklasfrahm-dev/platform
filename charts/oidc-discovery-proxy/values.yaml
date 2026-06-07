@@ -1,7 +1,7 @@
 oidc-discovery-proxy:
   gateway:
     enabled: true
-    name: shared-http
+    name: public-web-gateway
     namespace: platform
   host:
     domain: nicklasfrahm.dev

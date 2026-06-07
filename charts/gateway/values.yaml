@@ -1,5 +1,4 @@
 gateway:
-  name: "shared-http"
   className: "envoy-gateway"
   proxy:
     service:
@@ -46,7 +45,7 @@ gateway:
     - "example.com"
   infrastructure:
     labels: {}
-    # serving.kserve.io/gateway: shared-http
+    # serving.kserve.io/gateway: public-web-gateway
 
 issuers:
   letsEncryptProduction:

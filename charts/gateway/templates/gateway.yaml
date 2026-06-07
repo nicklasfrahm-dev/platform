@@ -42,8 +42,12 @@ spec:
           from: All
     {{- end }}
   {{- end }}
-  {{- if $.Values.gateway.infrastructure.labels }}
   infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: {{ .Values.gateway.name | quote }}
+    {{- if $.Values.gateway.infrastructure.labels }}
     labels:
       {{- toYaml $.Values.gateway.infrastructure.labels | nindent 6 }}
-  {{- end }}
+    {{- end }}

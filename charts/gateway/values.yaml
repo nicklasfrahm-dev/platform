@@ -1,6 +1,37 @@
 gateway:
   name: "shared-http"
   className: "envoy-gateway"
+  proxy:
+    service:
+      # Use "Cluster" instead of the envoy-gateway default "Local" so that the
+      # BGP control plane can advertise the gateway address from any node.
+      # Client addresses are preserved end-to-end via the PROXY protocol
+      # below, so "Local" is unnecessary and only ties proxy pod placement to
+      # BGP peering nodes.
+      externalTrafficPolicy: "Cluster"
+    autoscaling:
+      minReplicas: 2
+      maxReplicas: 4
+    disruptionBudget:
+      maxUnavailable: "50%"
+    accessLog:
+      # Emit a structured JSON access log to stdout for ingestion by the
+      # cluster's logging stack.
+      format:
+        startTime: "%START_TIME%"
+        method: "%REQ(:METHOD)%"
+        path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+        protocol: "%PROTOCOL%"
+        responseCode: "%RESPONSE_CODE%"
+        responseFlags: "%RESPONSE_FLAGS%"
+        bytesReceived: "%BYTES_RECEIVED%"
+        bytesSent: "%BYTES_SENT%"
+        duration: "%DURATION%"
+        upstreamHost: "%UPSTREAM_HOST%"
+        authority: "%REQ(:AUTHORITY)%"
+        userAgent: "%REQ(USER-AGENT)%"
+        requestID: "%REQ(X-REQUEST-ID)%"
+        forwardedFor: "%REQ(X-FORWARDED-FOR)%"
   proxyProtocol:
     enabled: true
     # Set to true only if not all upstream traffic sends the PROXY protocol

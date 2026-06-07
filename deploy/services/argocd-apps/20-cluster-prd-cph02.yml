@@ -1,7 +1,5 @@
 cluster: prd-cph02
 
 tenants:
-  kommodity:
-    enabled: true
   llm:
     enabled: true

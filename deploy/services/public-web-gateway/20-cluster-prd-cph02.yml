@@ -5,7 +5,6 @@ gateway:
     - ceph.cph02.nicklasfrahm.dev
     - s3.cph02.nicklasfrahm.dev
     - auth.nicklasfrahm.dev
-    - kommodity.io
     - llm.cph02.nicklasfrahm.dev
     - oidc.cph02.nicklasfrahm.dev
     - grafana.nicklasfrahm.dev

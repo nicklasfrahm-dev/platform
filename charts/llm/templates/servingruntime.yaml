@@ -18,10 +18,7 @@ spec:
         - "$(MODEL_ID)"
         - "--tensor-parallel-size={{ $gpu.tensorParallelSize }}"
         - "--gpu-memory-utilization={{ $gpu.gpuMemoryUtilization }}"
-        - "--dtype=auto"
-        {{- if $gpu.kvCacheDtype }}
-        - "--kv-cache-dtype={{ $gpu.kvCacheDtype }}"
-        {{- end }}
+        - "--dtype={{ $gpu.dtype | default "auto" }}"
         - "--trust-remote-code"
         - "--max-num-seqs={{ $model.maxNumSeqs | default $gpu.maxNumSeqs }}"
         - "--enable-server-load-tracking"

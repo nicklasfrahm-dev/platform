@@ -7,7 +7,7 @@ gpu:
   profile:
     rtx3090:
       maxNumSeqs: 1
-      gpuMemoryUtilization: 0.99
+      gpuMemoryUtilization: 0.98
       tensorParallelSize: 1
       resources:
         limits:
@@ -109,6 +109,9 @@ model:
         - "--quantization=compressed-tensors"
         - "--reasoning-parser=qwen3"
         - "--tool-call-parser=qwen3_coder"
+        - "--enable-chunked-prefill"
+        - "--max-num-batched-tokens=8192"
+        - "--max-cudagraph-capture-size=256"
     # Untested: RTX 3090 (24GB)
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"

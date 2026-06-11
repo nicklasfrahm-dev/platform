@@ -111,7 +111,6 @@ model:
         - "--tool-call-parser=qwen3_coder"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=8192"
-        - "--max-cudagraph-capture-size=256"
     # Untested: RTX 3090 (24GB)
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"

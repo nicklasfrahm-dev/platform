@@ -3,9 +3,9 @@ type: application
 name: oidc-discovery-proxy
 description: Expose the Kubernetes OIDC discovery endpoints publicly for service account identity federation.
 icon: https://github.com/kommodity-io.png
-version: 1.0.2
-appVersion: "v1.2.1"
+version: 1.0.3
+appVersion: "v1.2.2"
 dependencies:
   - name: oidc-discovery-proxy
-    version: 1.2.1
+    version: 1.2.2
     repository: "oci://ghcr.io/kommodity-io/charts"

@@ -111,6 +111,7 @@ model:
         - "--tool-call-parser=qwen3_coder"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=8192"
+        - "--kv-cache-dtype=turboquant_k8v4"
     # Untested: RTX 3090 (24GB)
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"

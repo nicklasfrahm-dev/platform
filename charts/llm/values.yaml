@@ -7,7 +7,7 @@ gpu:
   profile:
     rtx3090:
       maxNumSeqs: 1
-      gpuMemoryUtilization: 0.95
+      gpuMemoryUtilization: 0.99
       tensorParallelSize: 1
       resources:
         limits:
@@ -98,6 +98,15 @@ model:
         - "--max-model-len=65536"
         - "--quantization=compressed-tensors"
         - "--language-model-only"
+        - "--reasoning-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
+    # Active: RTX 3090 (24GB), deployed on cph02
+    qwen36-27b:
+      modelId: "Intel/Qwen3.6-27B-int4-AutoRound"
+      servedModelName: "qwen36-27b"
+      args:
+        - "--max-model-len=65536"
+        - "--quantization=compressed-tensors"
         - "--reasoning-parser=qwen3"
         - "--tool-call-parser=qwen3_coder"
     # Untested: RTX 3090 (24GB)

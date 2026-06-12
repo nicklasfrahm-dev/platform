@@ -1,0 +1,193 @@
+# Platform metadata injected by the ArgoCD ApplicationSet.
+platform:
+  # Base domain, e.g. "nicklasfrahm.dev". Hostnames are derived from this.
+  domain: ""
+
+# Alloy OTEL gateway (upstream grafana/alloy subchart, aliased as "otel-gateway"):
+# the public ingest endpoint that receives OTLP telemetry and forwards logs to Loki.
+# See https://github.com/grafana/alloy/blob/main/operations/helm/charts/alloy/values.yaml
+otel-gateway:
+  enabled: true
+
+  controller:
+    type: deployment
+    replicas: 2
+
+  alloy:
+    # Expose the OTLP receiver ports (the chart only opens 12345 by default).
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        memory: "256Mi"
+    configMap:
+      content: |
+        // OTLP gateway: accept telemetry over gRPC (4317) and HTTP (4318) and
+        // forward logs to the in-cluster Loki store via its native OTLP endpoint.
+        otelcol.receiver.otlp "gateway" {
+          grpc {
+            endpoint = "0.0.0.0:4317"
+          }
+          http {
+            endpoint = "0.0.0.0:4318"
+          }
+          output {
+            // Only logs have a backend (Loki); metrics and traces are dropped.
+            logs = [otelcol.processor.batch.gateway.input]
+          }
+        }
+
+        otelcol.processor.batch "gateway" {
+          output {
+            logs = [otelcol.exporter.otlphttp.loki.input]
+          }
+        }
+
+        otelcol.exporter.otlphttp "loki" {
+          client {
+            endpoint = "http://monitoring-server-loki:3100/otlp"
+          }
+        }
+
+# Public HTTPRoute that exposes the Alloy OTLP/HTTP receiver. One route is
+# rendered per enabled entry in auth.clusters, each matched on the X-Cluster
+# header and guarded by its own SecurityPolicy. The hostname is built as
+# "<subdomain>.<platform.domain>".
+route:
+  subdomain: otel
+  gateway:
+    name: public-web-gateway
+    namespace: platform
+
+auth:
+  # Path appended to https://oidc.<cluster>.<platform.domain> for the JWKS.
+  # NOTE: the llm chart uses "/openid/v1/jwks"; reconcile if they must match.
+  jwksPath: "/v1/openid/jwks"
+  # Each "true" entry admits a cluster: it creates an HTTPRoute matching
+  # "X-Cluster: <cluster>" plus a SecurityPolicy that accepts JWTs from
+  # https://oidc.<cluster>.<platform.domain><jwksPath>.
+  clusters: {}
+  # cph02: true
+
+# Values for the upstream grafana/loki subchart.
+# See https://github.com/grafana/loki/blob/main/production/helm/loki/values.yaml
+loki:
+  enabled: true
+
+  # Run Loki as a monolith: every instance runs the full `-target=all` stack
+  # and they coordinate via a memberlist ring backed by shared object storage.
+  deploymentMode: SingleBinary
+
+  # The "loki" block holds the rendered Loki application config.
+  loki:
+    auth_enabled: false
+
+    commonConfig:
+      # Must be <= singleBinary.replicas for highly-available writes.
+      replication_factor: 3
+
+    # Single TSDB schema backed by the object bucket.
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+
+    # Chunks and the ruler live in the Ceph object bucket. The ${...} values are
+    # populated at runtime from the object bucket claim's generated ConfigMap and
+    # Secret (wired in via singleBinary.extraEnvFrom + -config.expand-env=true).
+    storage:
+      type: s3
+      bucketNames:
+        chunks: ${BUCKET_NAME}
+        ruler: ${BUCKET_NAME}
+      s3:
+        endpoint: ${BUCKET_HOST}:${BUCKET_PORT}
+        region: ${BUCKET_REGION}
+        accessKeyId: ${AWS_ACCESS_KEY_ID}
+        secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+        s3ForcePathStyle: true
+        # RGW is reached over plain HTTP inside the cluster.
+        insecure: true
+
+    limits_config:
+      retention_period: 168h # 7 days
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+
+    # Enable the compactor to actually delete chunks past the retention period.
+    structuredConfig:
+      compactor:
+        retention_enabled: true
+        delete_request_store: s3
+        working_directory: /var/loki/compactor
+        compaction_interval: 10m
+
+  # The monolithic instances.
+  singleBinary:
+    replicas: 3
+    extraArgs:
+      # Expand ${...} placeholders in the config from the env vars below.
+      - "-config.expand-env=true"
+    extraEnvFrom:
+      # Object bucket claim outputs: BUCKET_HOST/PORT/NAME/REGION (ConfigMap).
+      - configMapRef:
+          name: monitoring-server-logs
+      # Object bucket claim outputs: AWS_ACCESS_KEY_ID/SECRET (Secret).
+      - secretRef:
+          name: monitoring-server-logs
+    persistence:
+      # Local block storage for the WAL and index cache only; chunks go to S3.
+      enabled: true
+      storageClass: ceph-block
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+
+  # Disable the simple-scalable / microservice components.
+  write:
+    replicas: 0
+  read:
+    replicas: 0
+  backend:
+    replicas: 0
+
+  # Keep the footprint small: no caches, gateway, canary or test pods.
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  gateway:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+
+  # Provision the Ceph object bucket that backs long-term log storage.
+  extraObjects:
+    - apiVersion: objectbucket.io/v1alpha1
+      kind: ObjectBucketClaim
+      metadata:
+        name: monitoring-server-logs
+      spec:
+        generateBucketName: monitoring-server-logs
+        storageClassName: ceph-bucket

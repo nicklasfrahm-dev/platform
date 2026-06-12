@@ -8,6 +8,5 @@ gateway:
     - llm.cph02.nicklasfrahm.dev
     - oidc.cph02.nicklasfrahm.dev
     - grafana.nicklasfrahm.dev
-    - otel.nicklasfrahm.dev
   addresses:
     - value: 172.29.0.1

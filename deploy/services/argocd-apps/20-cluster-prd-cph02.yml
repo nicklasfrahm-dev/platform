@@ -3,5 +3,3 @@ cluster: prd-cph02
 tenants:
   llm:
     enabled: true
-  monitoring-system:
-    enabled: true

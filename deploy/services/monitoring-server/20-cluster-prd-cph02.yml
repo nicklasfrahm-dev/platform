@@ -1,5 +1,0 @@
-# Admit the cph02 cluster: telemetry sent with "X-Cluster: cph02" is authorized
-# against https://oidc.cph02.<platform.domain>/v1/openid/jwks.
-auth:
-  clusters:
-    cph02: true

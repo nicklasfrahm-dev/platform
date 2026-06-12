@@ -25,10 +25,11 @@ model:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
       args:
-        - "--max-model-len=131072"
+        - "--max-model-len=65536"
         - "--tool-call-parser=gemma4"
         - "--reasoning-parser=gemma4"
-        - "--max-num-batched-tokens=4096"
+        - "--enable-chunked-prefill"
+        - "--max-num-batched-tokens=8192"
         - "--chat-template=examples/tool_chat_template_gemma4.jinja"
         - "--default-chat-template-kwargs={\"enable_thinking\": true}"
         - "--quantization=compressed-tensors"
@@ -111,7 +112,7 @@ model:
         - "--tool-call-parser=qwen3_coder"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=8192"
-        - "--kv-cache-dtype=turboquant_k8v4"
+        - "--kv-cache-dtype=fp8_e5m2"
     # Untested: RTX 3090 (24GB)
     qwen3-30b:
       modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"
@@ -138,8 +139,9 @@ auth:
       enabled: true
       jwksUri: "https://oidc.cph02.nicklasfrahm.dev/openid/v1/jwks"
   credentials:
-    # Each enabled entry creates a ServiceAccount and a long-lived
-    # ServiceAccountToken Secret, both named "<release-name>-<key>".
+    # Each enabled entry creates a ServiceAccount named "<release-name>-<key>"
+    # and a long-lived ServiceAccountToken Secret named
+    # "<release-name>-api-key-<key>".
     # The resulting token is a Kubernetes service account JWT that can be
     # used as a Bearer token via the cph02 OIDC issuer (see auth.providers.cph02).
     # Ignored when auth.enabled is false.

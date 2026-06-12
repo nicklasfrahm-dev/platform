@@ -1,0 +1,25 @@
+{{- if (index .Values "otel-gateway").enabled }}
+{{- range $cluster, $enabled := .Values.auth.clusters }}
+{{- if $enabled }}
+---
+# Accept only JWTs signed by cluster "{{ $cluster }}"'s OIDC issuer on its route.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ include "monitoring-server.gateway" $ }}-{{ $cluster }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "monitoring-server.gateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ include "monitoring-server.gateway" $ }}-{{ $cluster }}
+  jwt:
+    providers:
+      - name: {{ $cluster | quote }}
+        remoteJWKS:
+          uri: {{ printf "https://oidc.%s.%s%s" $cluster $.Values.platform.domain $.Values.auth.jwksPath | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,2 +1,15 @@
 grafana:
   enabled: true
+
+  # Automatically provision the Loki log store (deployed by the
+  # monitoring-server release in the monitoring-system namespace) as a datasource.
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          uid: loki
+          type: loki
+          access: proxy
+          url: http://monitoring-server-loki.monitoring-system:3100
+          isDefault: false

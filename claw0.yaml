@@ -18,7 +18,7 @@ spec:
       agents:
         defaults:
           model:
-            primary: "vllm/qwen3-coder-30b"
+            primary: "vllm/gemma4-26b"
           # TELEGRAM_BOT_TOKEN is injected from the secret above
       channels:
         telegram:
@@ -31,8 +31,8 @@ spec:
             apiKey: "PLACEHOLDER" # not used by vLLM but required to be non-empty
             api: "openai-completions"
             models:
-              - id: "qwen3-coder-30b"
-                name: "Qwen3 Coder 30B"
+              - id: "gemma4-26b"
+                name: "Gemma4 26B"
 
   # --- Storage: default storage class, 50Gi ---
   storage:

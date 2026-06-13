@@ -6,7 +6,7 @@ metadata:
   name: claw-0
 spec:
   image:
-    tag: "2026.5.7-slim"
+    tag: "2026.6.6-slim"
   # --- Secrets ---
   envFrom:
     - secretRef:

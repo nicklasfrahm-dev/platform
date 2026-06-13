@@ -43,9 +43,9 @@ func lineChart(title string, xLabels []string, values []float64, _ string) strin
 	return plot + "\n" + axis.String()
 }
 
-// errorBarChart renders a chart with vertical error bars (min–max) and a * marker for the average.
-func errorBarChart(title string, xLabels []string, mins, avgs, maxs []float64) string {
-	numPoints := len(avgs)
+// errorBarChart renders a chart with vertical bars from p50 (marked with *) to p95.
+func errorBarChart(title string, xLabels []string, p50s, p95s []float64) string {
+	numPoints := len(p50s)
 	if numPoints == 0 {
 		return ""
 	}
@@ -53,25 +53,26 @@ func errorBarChart(title string, xLabels []string, mins, avgs, maxs []float64) s
 	const labelMultiplier = 8
 
 	width := max(minChartWidth, numPoints*labelMultiplier)
-	globalMin, globalMax := yRange(mins, maxs)
+	globalMin, globalMax := yRange(p50s, p95s)
 	cols := columnPositions(numPoints, width)
 	grid := makeEmptyGrid(chartHeight, width)
 
-	fillErrorBars(grid, cols, mins, avgs, maxs, globalMin, globalMax)
+	fillErrorBars(grid, cols, p50s, p95s, globalMin, globalMax)
 
 	return renderErrorBarChart(title, xLabels, grid, globalMin, globalMax, width)
 }
 
-func yRange(mins, maxs []float64) (float64, float64) {
-	globalMin, globalMax := mins[0], maxs[0]
+// yRange returns the overall (min, max) across both value sets, assuming los[idx] <= his[idx].
+func yRange(los, his []float64) (float64, float64) {
+	globalMin, globalMax := los[0], his[0]
 
-	for idx := range mins {
-		if mins[idx] < globalMin {
-			globalMin = mins[idx]
+	for idx := range los {
+		if los[idx] < globalMin {
+			globalMin = los[idx]
 		}
 
-		if maxs[idx] > globalMax {
-			globalMax = maxs[idx]
+		if his[idx] > globalMax {
+			globalMax = his[idx]
 		}
 	}
 
@@ -126,18 +127,17 @@ func valueToRow(v, globalMin, globalMax float64) int {
 	return row
 }
 
-func fillErrorBars(grid [][]rune, cols []int, mins, avgs, maxs []float64, globalMin, globalMax float64) {
+func fillErrorBars(grid [][]rune, cols []int, p50s, p95s []float64, globalMin, globalMax float64) {
 	for i := range cols {
 		col := cols[i]
-		topRow := valueToRow(maxs[i], globalMin, globalMax)
-		botRow := valueToRow(mins[i], globalMin, globalMax)
-		avgRow := valueToRow(avgs[i], globalMin, globalMax)
+		topRow := valueToRow(p95s[i], globalMin, globalMax)
+		botRow := valueToRow(p50s[i], globalMin, globalMax)
 
 		for r := topRow; r <= botRow; r++ {
 			grid[r][col] = '│'
 		}
 
-		grid[avgRow][col] = '*'
+		grid[botRow][col] = '*'
 	}
 }
 

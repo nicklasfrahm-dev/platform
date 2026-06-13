@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
+	"math/rand/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -15,13 +15,14 @@ type sweepPoint struct {
 	targetTokens     int
 	promptTokens     int
 	completionTokens int
-	avgLatency       time.Duration
-	minLatency       time.Duration
-	maxLatency       time.Duration
-	avgTokPerSec     float64
-	minTokPerSec     float64
-	maxTokPerSec     float64
+	latency          statSummary // seconds
+	tokPerSec        statSummary
 }
+
+// seedText is repeated to pad prompts and to calibrate charsPerToken.
+const seedText = "The transformer architecture relies on self-attention mechanisms " +
+	"that allow each token in a sequence to attend to every other token, " +
+	"enabling the model to capture long-range dependencies efficiently. "
 
 func parseSweepSizes(s string) []int {
 	var sizes []int
@@ -37,6 +38,8 @@ func parseSweepSizes(s string) []int {
 }
 
 func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
+	charsPerToken := calibrateCharsPerToken(ctx, baseURL, cfg)
+
 	_, _ = fmt.Fprintf(os.Stdout, "sweep: %d context sizes, %d requests each, %d output tokens\n\n",
 		len(sizes), cfg.sweepReqs, cfg.sweepOutToks)
 
@@ -49,7 +52,7 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 
 		_, _ = fmt.Fprintf(os.Stdout, "context ~%dk tokens ...\n", target/tokensPerK)
 
-		sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target)
+		sweepPoint, ok := measureSweepPoint(ctx, baseURL, cfg, target, charsPerToken)
 		if !ok {
 			_, _ = fmt.Fprintln(os.Stdout, "  all requests failed, skipping")
 
@@ -58,14 +61,14 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 
 		results = append(results, sweepPoint)
 		_, _ = fmt.Fprintf(os.Stdout,
-			"  prompt=%d\n  lat min=%s avg=%s max=%s\n  tok/s min=%.1f avg=%.1f max=%.1f\n",
+			"  prompt=%d\n"+
+				"  lat (s)  min=%.3f p50=%.3f avg=%.3f p95=%.3f p99=%.3f max=%.3f stddev=%.3f\n"+
+				"  tok/s    min=%.1f p50=%.1f avg=%.1f p95=%.1f p99=%.1f max=%.1f stddev=%.1f\n",
 			sweepPoint.promptTokens,
-			sweepPoint.minLatency.Round(time.Millisecond),
-			sweepPoint.avgLatency.Round(time.Millisecond),
-			sweepPoint.maxLatency.Round(time.Millisecond),
-			sweepPoint.minTokPerSec,
-			sweepPoint.avgTokPerSec,
-			sweepPoint.maxTokPerSec,
+			sweepPoint.latency.min, sweepPoint.latency.p50, sweepPoint.latency.avg,
+			sweepPoint.latency.p95, sweepPoint.latency.p99, sweepPoint.latency.max, sweepPoint.latency.stddev,
+			sweepPoint.tokPerSec.min, sweepPoint.tokPerSec.p50, sweepPoint.tokPerSec.avg,
+			sweepPoint.tokPerSec.p95, sweepPoint.tokPerSec.p99, sweepPoint.tokPerSec.max, sweepPoint.tokPerSec.stddev,
 		)
 	}
 
@@ -78,18 +81,39 @@ func runSweep(ctx context.Context, baseURL string, cfg config, sizes []int) {
 	printSweepCharts(results)
 }
 
-func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target int) (sweepPoint, bool) {
-	prompt := paddedPrompt(target)
+// calibrateCharsPerToken queries vLLM's /tokenize endpoint to determine the actual
+// chars-per-token ratio for this model's tokenizer, falling back to
+// defaultCharsPerToken if the endpoint is unavailable.
+func calibrateCharsPerToken(ctx context.Context, baseURL string, cfg config) float64 {
+	var sb strings.Builder
+	for sb.Len() < calibrationSampleChars {
+		sb.WriteString(seedText)
+	}
 
+	sample := sb.String()[:calibrationSampleChars]
+
+	count, err := countTokens(ctx, cfg.client, baseURL, cfg.model, sample, cfg.apiKey)
+	if err != nil || count == 0 {
+		log.Printf("tokenize calibration failed, using default chars/token=%.2f: %v", defaultCharsPerToken, err)
+
+		return defaultCharsPerToken
+	}
+
+	ratio := float64(len(sample)) / float64(count)
+
+	_, _ = fmt.Fprintf(os.Stdout, "calibrated chars/token: %.2f (default %.2f)\n\n", ratio, defaultCharsPerToken)
+
+	return ratio
+}
+
+func measureSweepPoint(
+	ctx context.Context, baseURL string, cfg config, target int, charsPerToken float64,
+) (sweepPoint, bool) {
 	var (
-		totalLat        time.Duration
-		minLat          = time.Duration(math.MaxInt64)
-		maxLat          time.Duration
+		latencies       []float64
+		tokRates        []float64
 		totalPrompt     int
 		totalCompletion int
-		succeeded       int
-		minTok          = math.MaxFloat64
-		maxTok          float64
 	)
 
 	for sweepIdx := range cfg.sweepReqs {
@@ -99,6 +123,8 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 
 		waitForCapacity(ctx, baseURL, cfg)
 
+		prompt := paddedPrompt(target, charsPerToken, cfg.poisonPrefix)
+
 		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, prompt, cfg.sweepOutToks, cfg.apiKey)
 		if err != nil {
 			log.Printf("request %d for %d tokens: %v", sweepIdx+1, target, err)
@@ -106,55 +132,28 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 			continue
 		}
 
-		tok := float64(result.completionTokens) / result.latency.Seconds()
-
-		if result.latency < minLat {
-			minLat = result.latency
-		}
-
-		if result.latency > maxLat {
-			maxLat = result.latency
-		}
-
-		if tok < minTok {
-			minTok = tok
-		}
-
-		if tok > maxTok {
-			maxTok = tok
-		}
-
-		totalLat += result.latency
+		latencies = append(latencies, result.latency.Seconds())
+		tokRates = append(tokRates, float64(result.completionTokens)/result.latency.Seconds())
 		totalPrompt += result.promptTokens
 		totalCompletion += result.completionTokens
-		succeeded++
 	}
 
-	if succeeded == 0 {
+	if len(latencies) == 0 {
 		return sweepPoint{}, false
 	}
 
-	return buildSweepPoint(target, totalPrompt, totalCompletion, succeeded, totalLat, minLat, maxLat, minTok, maxTok), true
+	return buildSweepPoint(target, totalPrompt, totalCompletion, latencies, tokRates), true
 }
 
-func buildSweepPoint(
-	target, totalPrompt, totalCompletion, succeeded int,
-	totalLat, minLat, maxLat time.Duration,
-	minTok, maxTok float64,
-) sweepPoint {
-	avgLat := totalLat / time.Duration(succeeded)
-	avgCompletion := totalCompletion / succeeded
+func buildSweepPoint(target, totalPrompt, totalCompletion int, latencies, tokRates []float64) sweepPoint {
+	succeeded := len(latencies)
 
 	return sweepPoint{
 		targetTokens:     target,
 		promptTokens:     totalPrompt / succeeded,
-		completionTokens: avgCompletion,
-		avgLatency:       avgLat,
-		minLatency:       minLat,
-		maxLatency:       maxLat,
-		avgTokPerSec:     float64(avgCompletion) / avgLat.Seconds(),
-		minTokPerSec:     minTok,
-		maxTokPerSec:     maxTok,
+		completionTokens: totalCompletion / succeeded,
+		latency:          summarize(latencies),
+		tokPerSec:        summarize(tokRates),
 	}
 }
 
@@ -178,12 +177,10 @@ waitLoop:
 func printSweepCharts(results []sweepPoint) {
 	numResults := len(results)
 	labels := make([]string, numResults)
-	minLat := make([]float64, numResults)
-	avgLat := make([]float64, numResults)
-	maxLat := make([]float64, numResults)
-	minTok := make([]float64, numResults)
-	avgTok := make([]float64, numResults)
-	maxTok := make([]float64, numResults)
+	p50Lat := make([]float64, numResults)
+	p95Lat := make([]float64, numResults)
+	p50Tok := make([]float64, numResults)
+	p95Tok := make([]float64, numResults)
 
 	for idx, result := range results {
 		k := result.promptTokens / tokensPerK
@@ -193,38 +190,42 @@ func printSweepCharts(results []sweepPoint) {
 			labels[idx] = fmt.Sprintf("%dk", k)
 		}
 
-		minLat[idx] = result.minLatency.Seconds()
-		avgLat[idx] = result.avgLatency.Seconds()
-		maxLat[idx] = result.maxLatency.Seconds()
-		minTok[idx] = result.minTokPerSec
-		avgTok[idx] = result.avgTokPerSec
-		maxTok[idx] = result.maxTokPerSec
+		p50Lat[idx] = result.latency.p50
+		p95Lat[idx] = result.latency.p95
+		p50Tok[idx] = result.tokPerSec.p50
+		p95Tok[idx] = result.tokPerSec.p95
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout)
-	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs latency (s)", labels, minLat, avgLat, maxLat))
+	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs latency (s)", labels, p50Lat, p95Lat))
 	_, _ = fmt.Fprintln(os.Stdout)
-	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs throughput (tok/s)", labels, minTok, avgTok, maxTok))
+	_, _ = fmt.Fprintln(os.Stdout, errorBarChart("Context window vs throughput (tok/s)", labels, p50Tok, p95Tok))
 }
 
-// paddedPrompt returns a prompt whose token count is approximately targetTokens.
-// Approximation: 1 token ≈ 3.5 characters for English prose.
-func paddedPrompt(targetTokens int) string {
+// paddedPrompt returns a prompt whose token count is approximately targetTokens,
+// given the chars-per-token ratio of the model's tokenizer (see calibrateCharsPerToken).
+//
+// If poisonPrefixCache is true, a random ID is prepended so the prompt shares
+// no common prefix with previous requests, defeating vLLM's prefix cache and
+// forcing a full prefill on every request.
+func paddedPrompt(targetTokens int, charsPerToken float64, poisonPrefixCache bool) string {
 	question := "Summarise the above in one sentence."
 
-	charsNeeded := int(float64(targetTokens)*charsPerToken) - len(question) - paddingOverhead
-	if charsNeeded < 0 {
-		return question
+	prefix := ""
+	if poisonPrefixCache {
+		// Weak randomness is fine: this only needs to be unique, not unpredictable.
+		prefix = fmt.Sprintf("Request ID: %016x\n\n", rand.Uint64()) //nolint:gosec
 	}
 
-	seed := "The transformer architecture relies on self-attention mechanisms " +
-		"that allow each token in a sequence to attend to every other token, " +
-		"enabling the model to capture long-range dependencies efficiently. "
+	charsNeeded := int(float64(targetTokens)*charsPerToken) - len(question) - len(prefix) - paddingOverhead
+	if charsNeeded < 0 {
+		return prefix + question
+	}
 
 	var sb strings.Builder
 	for sb.Len() < charsNeeded {
-		sb.WriteString(seed)
+		sb.WriteString(seedText)
 	}
 
-	return sb.String()[:charsNeeded] + "\n\n" + question
+	return prefix + sb.String()[:charsNeeded] + "\n\n" + question
 }

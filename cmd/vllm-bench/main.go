@@ -41,6 +41,7 @@ type config struct {
 	sweepSizes   string
 	sweepReqs    int
 	sweepOutToks int
+	poisonPrefix bool
 	apiKey       string
 	client       *http.Client
 }
@@ -108,6 +109,8 @@ func newSweepCmd(cfg *config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.sweepSizes, "sizes", defaultSweepSizes, "comma-separated input token targets")
 	cmd.Flags().IntVar(&cfg.sweepReqs, "requests", defaultSweepReqs, "requests per context size (averaged)")
 	cmd.Flags().IntVar(&cfg.sweepOutToks, "out-tokens", defaultSweepOutToks, "output tokens per request")
+	cmd.Flags().BoolVar(&cfg.poisonPrefix, "poison-prefix-cache", false,
+		"prepend a random ID to each prompt to defeat vLLM prefix caching")
 
 	return cmd
 }

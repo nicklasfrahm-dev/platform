@@ -32,7 +32,16 @@ const (
 	minPrometheusFields = 2
 
 	// Prompt padding constants.
-	tokensPerK      = 1024
-	paddingOverhead = 20
-	charsPerToken   = 3.5
+	tokensPerK           = 1024
+	paddingOverhead      = 20
+	defaultCharsPerToken = 3.5
+
+	// Calibration constants.
+	calibrationSampleChars = 2000
+
+	// Percentile constants.
+	percentileScale = 100.0
+	percentileP50   = 50.0
+	percentileP95   = 95.0
+	percentileP99   = 99.0
 )

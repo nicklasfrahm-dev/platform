@@ -35,7 +35,7 @@ model:
         - "--quantization=compressed-tensors"
         - "--limit-mm-per-prompt={\"image\": 0, \"video\": 0}"
         - "--max-model-len=180224"
-        - "--max-num-batched-tokens=180224"
+        - "--max-num-batched-tokens=8192"
         - "--enable-chunked-prefill"
     # Stable: RTX 3090 (24GB)
     devstral-small:

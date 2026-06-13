@@ -10,7 +10,8 @@ linters:
     - depguard
     # requires zero-value fields to be explicit — too verbose for stdlib types
     - exhaustruct
-    # deprecated; replaced by wsl_v5
+    # deprecated linters
+    - gomodguard
     - wsl
 
   settings:

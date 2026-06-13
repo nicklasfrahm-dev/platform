@@ -27,6 +27,13 @@ spec:
         - "--enable-server-load-tracking"
         - "--middleware=backpressure.BackpressureMiddleware"
         - "--enable-auto-tool-choice"
+        # Give uvicorn our JSON logging config (with the health-check access-log
+        # filter) so its startup and access logs are JSON, not uvicorn's default
+        # text format. This is independent of the VLLM_LOGGING_CONFIG_PATH env.
+        - "--log-config-file=/opt/workspace/extensions/logging_config.json"
+        # Disable tqdm progress bars (weight loading and CUDA graph capture) so
+        # they do not emit non-JSON lines to the console.
+        - "--no-use-tqdm-on-load"
       env:
         - name: MODEL_ID
           value: ""
@@ -36,16 +43,27 @@ spec:
               name: hf-secret
               key: HF_TOKEN
         - name: PYTHONPATH
-          value: "/opt/workspace/middlewares:${PYTHONPATH:-}"
+          value: "/opt/workspace/extensions:${PYTHONPATH:-}"
+        # Disable vLLM's built-in logging setup so it does not prefix every line
+        # with "(Process pidN)"; sitecustomize.py applies the JSON config instead.
+        - name: VLLM_CONFIGURE_LOGGING
+          value: "0"
+        # Keep transformers warnings; sitecustomize.py routes them through the
+        # JSON root logger instead of transformers' raw "[transformers]" handler.
+        - name: TRANSFORMERS_VERBOSITY
+          value: "warning"
+        # Disable Hugging Face Hub download progress bars (non-JSON output).
+        - name: HF_HUB_DISABLE_PROGRESS_BARS
+          value: "1"
       volumeMounts:
-        - name: middleware-volume
-          mountPath: /opt/workspace/middlewares
+        - name: extensions-volume
+          mountPath: /opt/workspace/extensions
           readOnly: true
       resources:
         {{- toYaml $gpu.resources | nindent 8 }}
       ports:
         - containerPort: 8000
   volumes:
-    - name: middleware-volume
+    - name: extensions-volume
       configMap:
-        name: {{ .Release.Name }}-middlewares
+        name: {{ .Release.Name }}-extensions

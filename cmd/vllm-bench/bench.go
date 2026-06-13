@@ -92,7 +92,7 @@ func benchWorker(ctx context.Context, workerID int, baseURL string, cfg config, 
 			continue
 		}
 
-		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, cfg.prompt, cfg.maxTokens)
+		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, cfg.prompt, cfg.maxTokens, cfg.apiKey)
 		if err != nil {
 			if ctx.Err() == nil {
 				log.Printf("worker %d: %v", workerID, err)

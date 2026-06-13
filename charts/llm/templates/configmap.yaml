@@ -3,9 +3,95 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-middlewares
+  name: {{ .Release.Name }}-extensions
   namespace: {{ .Release.Namespace }}
 data:
+  sitecustomize.py: |
+    import json
+    import logging
+    import logging.config
+    import os
+
+    # Route warnings.warn() (e.g. transformers deprecation notices) through the
+    # "py.warnings" logger so they are emitted as JSON like everything else.
+    logging.captureWarnings(True)
+
+    # vLLM's built-in logging is disabled (VLLM_CONFIGURE_LOGGING=0) so it does
+    # not prepend a "(Process pidN)" decoration to every line. We apply the JSON
+    # logging config ourselves so each log line is a single, pure JSON object.
+    _config = os.path.join(os.path.dirname(__file__), "logging_config.json")
+    with open(_config, encoding="utf-8") as _file:
+        logging.config.dictConfig(json.load(_file))
+
+    # transformers attaches its own "[transformers] ..." stderr handler. Drop it
+    # and let transformers logs propagate to the JSON root logger instead, so its
+    # warnings are emitted as JSON rather than raw text.
+    try:
+        from transformers.utils import logging as transformers_logging
+
+        transformers_logging.disable_default_handler()
+        transformers_logging.enable_propagation()
+    except Exception:
+        pass
+  logging_config.json: |
+    {
+      "version": 1,
+      "disable_existing_loggers": false,
+      "formatters": {
+        "json": {
+          "()": "pythonjsonlogger.json.JsonFormatter",
+          "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+          "rename_fields": {
+            "asctime": "timestamp",
+            "levelname": "level",
+            "name": "logger"
+          }
+        }
+      },
+      "filters": {
+        "health_endpoints": {
+          "()": "access_log_filter.EndpointFilter",
+          "excluded_paths": ["/health", "/ping", "/metrics"]
+        }
+      },
+      "handlers": {
+        "console": {
+          "class": "logging.StreamHandler",
+          "formatter": "json",
+          "level": "INFO",
+          "stream": "ext://sys.stdout"
+        }
+      },
+      "loggers": {
+        "vllm": {"handlers": ["console"], "level": "INFO", "propagate": false},
+        "uvicorn": {"handlers": ["console"], "level": "INFO", "propagate": false},
+        "uvicorn.error": {"handlers": ["console"], "level": "INFO", "propagate": false},
+        "uvicorn.access": {"handlers": ["console"], "level": "INFO", "propagate": false, "filters": ["health_endpoints"]},
+        "py.warnings": {"handlers": ["console"], "level": "WARNING", "propagate": false}
+      },
+      "root": {"handlers": ["console"], "level": "INFO"}
+    }
+  access_log_filter.py: |
+    import logging
+    from urllib.parse import urlparse
+
+
+    class EndpointFilter(logging.Filter):
+        """Drop uvicorn access-log records for the given endpoints (health checks)."""
+
+        def __init__(self, excluded_paths=None):
+            super().__init__()
+            self._excluded = set(excluded_paths or [])
+
+        def filter(self, record):
+            if not self._excluded or record.name != "uvicorn.access":
+                return True
+            # uvicorn access logs put the request path at args[2].
+            args = record.args
+            if isinstance(args, tuple) and len(args) >= 3 and isinstance(args[2], str):
+                if urlparse(args[2]).path in self._excluded:
+                    return False
+            return True
   backpressure.py: |
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import JSONResponse

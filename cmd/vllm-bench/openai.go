@@ -40,7 +40,7 @@ type inferenceResult struct {
 
 func sendChatCompletion(
 	ctx context.Context, client *http.Client,
-	baseURL, model, prompt string, maxTokens int,
+	baseURL, model, prompt string, maxTokens int, apiKey string,
 ) (inferenceResult, error) {
 	body, err := json.Marshal(chatRequest{
 		Model:     model,
@@ -58,6 +58,9 @@ func sendChatCompletion(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
 
 	start := time.Now()
 

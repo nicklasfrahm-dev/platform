@@ -41,6 +41,7 @@ type config struct {
 	sweepSizes   string
 	sweepReqs    int
 	sweepOutToks int
+	apiKey       string
 	client       *http.Client
 }
 
@@ -62,6 +63,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&cfg.namespace, "namespace", "llm", "Kubernetes namespace")
 	root.PersistentFlags().StringVar(&cfg.selector, "selector", defaultSelector, "pod label selector")
 	root.PersistentFlags().StringVar(&cfg.model, "model", "gemma4-26b", "served model name")
+	root.PersistentFlags().StringVar(&cfg.apiKey, "api-key", "", "API key for Bearer token authorization")
 	root.PersistentFlags().IntVar(&cfg.maxQueue, "max-queue", defaultMaxQueue,
 		"pause worker when vLLM waiting queue reaches this depth")
 	root.PersistentFlags().IntVar(&cfg.port, "port", defaultPort, "local port for kubectl port-forward")

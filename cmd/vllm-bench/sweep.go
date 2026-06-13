@@ -99,7 +99,7 @@ func measureSweepPoint(ctx context.Context, baseURL string, cfg config, target i
 
 		waitForCapacity(ctx, baseURL, cfg)
 
-		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, prompt, cfg.sweepOutToks)
+		result, err := sendChatCompletion(ctx, cfg.client, baseURL, cfg.model, prompt, cfg.sweepOutToks, cfg.apiKey)
 		if err != nil {
 			log.Printf("request %d for %d tokens: %v", sweepIdx+1, target, err)
 

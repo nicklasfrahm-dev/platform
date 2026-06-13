@@ -7,7 +7,7 @@ gpu:
   profile:
     rtx3090:
       maxNumSeqs: 1
-      gpuMemoryUtilization: 0.98
+      gpuMemoryUtilization: 0.985
       tensorParallelSize: 1
       resources:
         limits:
@@ -25,7 +25,7 @@ model:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
       args:
-        - "--max-model-len=65536"
+        - "--max-model-len=122880"
         - "--tool-call-parser=gemma4"
         - "--reasoning-parser=gemma4"
         - "--enable-chunked-prefill"

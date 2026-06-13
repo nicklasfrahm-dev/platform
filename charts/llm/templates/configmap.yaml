@@ -97,6 +97,7 @@ data:
     from starlette.responses import JSONResponse
 
     MAX_CONCURRENT = {{ $model.maxNumSeqs | default $gpu.maxNumSeqs }}  # mirrors --max-num-seqs
+    MAX_QUEUE = 4
 
     class BackpressureMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
@@ -107,7 +108,7 @@ data:
                 load = getattr(
                     request.app.state, "server_load_metrics", 0
                 )
-                if load >= MAX_CONCURRENT:
+                if load >= MAX_CONCURRENT or load >= MAX_QUEUE:
                     return JSONResponse(
                         {
                             "error": {

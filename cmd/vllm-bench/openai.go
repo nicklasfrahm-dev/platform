@@ -67,6 +67,7 @@ func sendChatCompletion(
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
 	if apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}

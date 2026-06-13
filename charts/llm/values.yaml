@@ -25,7 +25,7 @@ model:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
       args:
-        - "--max-model-len=122880"
+        - "--max-model-len=180224"
         - "--tool-call-parser=gemma4"
         - "--reasoning-parser=gemma4"
         - "--enable-chunked-prefill"

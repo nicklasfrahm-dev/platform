@@ -6,7 +6,7 @@ gpu:
   name: rtx3090
   profile:
     rtx3090:
-      maxNumSeqs: 4
+      maxNumSeqs: 1
       gpuMemoryUtilization: 0.985
       tensorParallelSize: 1
       resources:
@@ -24,6 +24,7 @@ model:
     gemma4-26b:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
+      maxNumSeqs: 4
       args:
         # Model capability optimizations.
         - "--chat-template=examples/tool_chat_template_gemma4.jinja"

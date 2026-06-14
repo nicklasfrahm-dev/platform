@@ -375,6 +375,17 @@ spec:
       format: json
   # ── Security / NetworkPolicy ─────────────────────────────────────────────────
   security:
+    # The operator runs as UID 1000 with a read-only root filesystem.
+    # The PVC is mounted at /home/openclaw/.openclaw to provide a writable
+    # home, and /tmp is an emptyDir. Both are writable by UID 1000.
+    #
+    # fsGroup: 1000 ensures the PVC mounts with group ownership matching
+    # the runtime user so chmod/write calls on ~/.openclaw succeed.
+    # Without this, the PVC may mount as root (GID 0) and the UID 1000
+    # process gets EPERM on chmod even though the mount is writable.
+    podSecurityContext:
+      runAsNonRoot: true
+      fsGroup: 1000
     networkPolicy:
       enabled: true
       allowDNS: true

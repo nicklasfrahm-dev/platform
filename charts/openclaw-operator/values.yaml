@@ -1,2 +1,4 @@
 openclaw-operator:
   enabled: true
+  leaderElection:
+    enabled: true

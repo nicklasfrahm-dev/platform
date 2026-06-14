@@ -7,23 +7,49 @@ metadata:
 spec:
   image:
     tag: "2026.6.6-slim"
-  # --- Secrets ---
+  # ── Secrets ─────────────────────────────────────────────────────────────────
+  # All env vars from the Secret above are injected into the container.
+  # openclaw.json picks them up via the shellEnv block and ${VAR} references.
   envFrom:
     - secretRef:
         name: claw-0
-
-  # --- Agent config ---
+  # ── Skills ──────────────────────────────────────────────────────────────────
+  # "github" is a bundled skill; it auto-activates when `gh` is on PATH.
+  # The operator runs skill installs in a dedicated init container.
+  skills:
+    - "github"
+  # ── Storage ─────────────────────────────────────────────────────────────────
+  storage:
+    persistence:
+      enabled: true
+      size: 50Gi
+  # ── Resources ───────────────────────────────────────────────────────────────
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      memory: "4Gi"
   config:
+    # ── Config merging ─────────────────────────────────────────────────────────
+    # "merge" deep-merges with any existing PVC config so runtime changes
+    # (e.g. skills installed by the agent itself) survive pod restarts.
+    mergeMode: merge
+    # ── Force paths ────────────────────────────────────────────────────────────
+    # Force the operator to always win on these paths, even under merge mode,
+    # so skills / auth config written by the operator can't be overwritten.
+    forcePaths:
+      - "skills.allowBundled"
+      - "skills.entries.github"
+      - "channels.telegram"
+      - "tools.allow"
+      - "tools.deny"
+    # ── openclaw.json (inline) ─────────────────────────────────────────────────
+    # This is the full openclaw.json rendered as YAML — the operator
+    # serialises it back to JSON5 and writes it into the container.
     raw:
-      agents:
-        defaults:
-          model:
-            primary: "vllm/gemma4-26b"
-          # TELEGRAM_BOT_TOKEN is injected from the secret above
-      channels:
-        telegram:
-          allowFrom:
-            - "162239400" # numeric ID, e.g. 123456789
+      # ── Model provider — your local vLLM endpoint ────────────────────────────
+      # Keep this in sync with your KServe InferenceService name/namespace.
       models:
         providers:
           vllm: # your custom provider name
@@ -33,59 +59,348 @@ spec:
             models:
               - id: "gemma4-26b"
                 name: "Gemma4 26B"
-      gateway:
-        mode: "local"
+      # ── Agent defaults ───────────────────────────────────────────────────────
+      agents:
+        defaults:
+          model:
+            primary: "vllm/gemma4-26b"
+          timeoutSeconds: 3600 # 1 hour
+          maxConcurrent: 1
+          thinkingDefault: "high"
+          skills:
+            - "github"
+          contextInjection: "always"
+          bootstrapMaxChars: 40000
+          bootstrapTotalMaxChars: 120000
+        list:
+          - id: "main"
+            default: true
+      # ── Tools ────────────────────────────────────────────────────────────────
+      tools:
+        profile: "coding"
+        allow:
+          - "group:fs"
+          - "group:runtime"
+          - "group:web"
+          - "group:sessions"
+          - "cron"
+          - "gh" # GitHub CLI, available because we installed the "github" skill
+        deny:
+          - "browser"
+          - "canvas"
+          - "image_generate"
+          - "video_generate"
+          - "music_generate"
+          - "tts"
+        exec:
+          timeoutSec: 1800 # 30 min
+          backgroundMs: 15000 # 15 sec
+          cleanupMs: 3600000 # 1 hour
+      # ── Skills ───────────────────────────────────────────────────────────────
       skills:
+        allowBundled:
+          - "github"
         entries:
           github:
             enabled: true
             env:
               GITHUB_TOKEN: "${GITHUB_TOKEN}" # injected from the secret above
-          web-search:
-            enabled: true
-      tools:
-        profile: "coding"
+      # ── Session ──────────────────────────────────────────────────────────────
+      session:
+        scope: "per-sender"
+        reset:
+          mode: "idle"
+          idleMinutes: 120
+        resetTriggers:
+          - "/new"
+          - "/reset"
+        maintenance:
+          mode: "warn"
+          pruneAfter: "7d"
+          maxEntries: 100
+      # ── Channel — Telegram ───────────────────────────────────────────────────
+      channels:
+        telegram:
+          enabled: true
+          dmPolicy: "allowlist"
+          allowFrom:
+            - "162239400"
+      # ── Cron (background CI polling) ─────────────────────────────────────────
+      cron:
+        enabled: true
+        maxConcurrentRuns: 2
+        sessionRetention: "48h"
+        runLog:
+          maxBytes: "5mb"
+          keepLines: 5000
+      # ── Logging ──────────────────────────────────────────────────────────────
+      # TODO: Change to JSON
+      logging:
+        level: "info"
+        consoleLevel: "info"
+        consoleStyle: "pretty"
+        redactSensitive: "tools"
+      # ── Gateway ──────────────────────────────────────────────────────────────
+      # The operator proxy sidecar owns the actual port binding.
+      # Setting mode: local here matches what the operator expects.
+      gateway:
+        mode: "local"
+  # ── Workspace file seeding ───────────────────────────────────────────────────
+  # Correct field name: spec.workspace.initialFiles  (not .files)
+  # The operator's init container writes these before the agent starts.
+  workspace:
+    initialFiles:
+      AGENTS.md: |
+        # Agent: Junior Go Developer
 
-  # --- Storage: default storage class, 50Gi ---
-  storage:
-    persistence:
+        You are an autonomous Go developer. Your job is to take a GitHub issue ID,
+        implement the required Go code, open a pull request, ensure CI passes, and
+        resolve every review comment — all without being asked to do each step
+        individually.
+
+        ---
+
+        ## Core Workflow
+
+        When given an issue ID (e.g. `#42` or `owner/repo#42`), execute the full
+        lifecycle below without pausing for approval at each step unless you hit an
+        ambiguity that you cannot resolve from context.
+
+        ### 1. Read the Issue
+
+        ```
+        gh issue view <ID> --repo <owner/repo> --json title,body,labels,assignees,comments
+        ```
+
+        - Parse the acceptance criteria. If the issue is vague, list your
+          assumptions in a brief Telegram message and proceed with them.
+        - Identify which packages, files, and interfaces are affected.
+
+        ### 2. Understand the Codebase
+
+        - `read` the relevant Go files. Prefer `go list ./...` and `grep` over
+          reading every file blindly.
+        - Check existing tests in `*_test.go` to understand expected behaviour.
+        - Read `go.mod` and `go.sum` to understand the dependency graph.
+
+        ### 3. Branch
+
+        ```
+        git checkout -b fix/<issue-id>-<short-slug>
+        # or
+        git checkout -b feat/<issue-id>-<short-slug>
+        ```
+
+        Never commit directly to `main` or `master`.
+
+        ### 4. Implement
+
+        Write idiomatic Go:
+
+        - Follow the existing code style (gofmt, golangci-lint rules already in repo).
+        - Prefer table-driven tests.
+        - Keep public API surfaces minimal; add to interfaces only when the issue
+          explicitly requires it.
+        - Handle errors explicitly — never discard them with `_`.
+        - Write or update tests for every changed code path.
+
+        Run the test suite after each meaningful change:
+
+        ```
+        go test ./... -count=1 -race
+        ```
+
+        If tests fail, fix them before moving on.
+
+        ### 5. Lint
+
+        ```
+        golangci-lint run ./...
+        ```
+
+        Fix all reported issues. If `golangci-lint` is not installed:
+
+        ```
+        go vet ./...
+        staticcheck ./...
+        ```
+
+        ### 6. Open the Pull Request
+
+        ```
+        gh pr create \
+          --repo <owner/repo> \
+          --base main \
+          --head <branch> \
+          --title "<Concise title referencing issue>" \
+          --body "$(cat <<'EOF'
+        ## Summary
+        <What was changed and why>
+
+        ## Changes
+        - <bullet list of changes>
+
+        ## Testing
+        - All existing tests pass: `go test ./... -count=1 -race`
+        - New tests added: <yes/no — list them>
+
+        Closes #<ID>
+        EOF
+        )"
+        ```
+
+        ### 7. Monitor CI
+
+        After the PR is opened:
+
+        1. Poll CI status every 60 seconds using background exec:
+
+        ```
+        gh pr checks <PR_NUMBER> --repo <owner/repo> --watch --interval 60
+        ```
+
+        2. If a check fails:
+           - Fetch the failed job log: `gh run view <run-id> --log-failed`
+           - Fix the root cause in the branch and push.
+           - Return to step 7.
+
+        3. When all checks pass, notify via Telegram: "✅ CI green on PR #<N>".
+
+        ### 8. Resolve Review Comments
+
+        Poll for new review comments every 5 minutes using cron while the PR is open:
+
+        ```
+        gh pr view <PR_NUMBER> --repo <owner/repo> --json reviews,comments
+        ```
+
+        For each unresolved comment:
+
+        - If it is a code request: implement the change, push, reply to the comment
+          with "Done in <commit-sha>", and mark the thread as resolved.
+        - If it is a question: answer it as a PR comment using your knowledge of the
+          codebase.
+        - If it requests a design change you disagree with: explain your reasoning in
+          a reply but implement the reviewer's preference unless it would break
+          correctness.
+
+        After resolving all comments, request a re-review:
+
+        ```
+        gh pr edit <PR_NUMBER> --add-reviewer <original-reviewer>
+        ```
+
+        ### 9. Merge Readiness
+
+        Notify via Telegram when:
+        - All CI checks are green AND
+        - All review threads are resolved AND
+        - The PR has at least one approving review
+
+        Message: "🚀 PR #<N> is ready to merge: <PR_URL>"
+
+        Do **not** merge yourself unless explicitly told to.
+
+        ---
+
+        ## Tool Usage
+
+        | Task | Command |
+        |---|---|
+        | Read a file | `read <path>` |
+        | Write / create a file | `write <path>` or `edit <path>` |
+        | Apply a multi-file patch | `apply_patch` |
+        | Run a shell command | `exec <cmd>` |
+        | Long-running command | `exec` with `background: true`, then `process poll` |
+        | GitHub operations | `gh` CLI via `exec` (GITHUB_TOKEN is set in env) |
+        | Web lookup (docs, RFCs) | `web_fetch <url>` |
+
+        ---
+
+        ## Go Code Standards
+
+        - `gofmt` always. Non-formatted code does not get committed.
+        - Errors: wrap with `fmt.Errorf("context: %w", err)` — never swallow.
+        - Interfaces: keep them in the **consumer** package, not the provider.
+        - Contexts: propagate `context.Context` as the first argument of every
+          function that does I/O or calls other services.
+        - No `init()` unless absolutely necessary.
+        - Prefer `sync.Once`, `sync.Map`, or explicit mutex over global variables.
+        - Use `testify/require` for fatal assertions, `testify/assert` for
+          non-fatal ones — consistent with the existing test suite.
+
+        ---
+
+        ## Communication Protocol
+
+        - **Start**: When you receive an issue ID, reply: "👀 Starting work on #<ID>".
+        - **Ambiguity**: If you need clarification, ask one focused question, then
+          proceed with a stated assumption.
+        - **Progress**: Send a brief update when each major step completes
+          (branch created, PR opened, CI green, all comments resolved).
+        - **Blockers**: If you hit something you cannot resolve (e.g. missing
+          credentials, unclear domain logic), say so immediately with the specific
+          blocker, not a vague error.
+        - **Done**: When the PR is review-ready, send the PR URL.
+
+        ---
+
+        ## Safety Rules
+
+        - Never `git push --force` to `main` or `master`.
+        - Never delete branches that are not yours.
+        - Never commit secrets, tokens, or credentials.
+        - Never modify `go.mod` / `go.sum` without running `go mod tidy` afterward.
+        - If a test you did not write starts failing due to your changes, fix the
+          underlying issue — do not delete or skip the test.
+  # ── Self-configure ───────────────────────────────────────────────────────────
+  selfConfigure:
+    enabled: true
+    allowedActions:
+      - skills
+      - workspaceFiles
+  # ── Networking ───────────────────────────────────────────────────────────────
+  networking:
+    service:
+      type: ClusterIP
+    ingress:
+      enabled: false
+  # ── Observability ────────────────────────────────────────────────────────────
+  observability:
+    metrics:
       enabled: true
-      size: 50Gi
-      # storageClass omitted → uses cluster default
-
-  # --- NetworkPolicy: allow egress to llm-predictor on port 80 ---
+      port: 9090
+    logging:
+      level: info
+      format: json
+  # ── Security / NetworkPolicy ─────────────────────────────────────────────────
   security:
     networkPolicy:
       enabled: true
+      allowDNS: true
       additionalEgress:
-        - to:
+        # Your local vLLM / KServe InferenceService
+        - ports:
+            - protocol: TCP
+              port: 8000
+          to:
             - namespaceSelector:
                 matchLabels:
                   kubernetes.io/metadata.name: llm
               podSelector:
                 matchLabels:
                   app: isvc.llm-predictor
-          ports:
+        - ports:
             - protocol: TCP
-              port: 8000
-        - to:
+              port: 443
+          to:
             - ipBlock:
                 cidr: "0.0.0.0/0"
                 # except:
                 #   - "10.0.0.0/8"
                 #   - "192.168.0.0/16"
                 #   - "172.16.0.0/12"
-          ports:
-            - protocol: TCP
-              port: 443
-
-  selfConfigure:
-    enabled: true
-    allowedActions:
-      - skills
-      - config
-      - workspaceFiles
-      - envVars
+  # ── Probes ───────────────────────────────────────────────────────────────────
   probes:
     startup:
       initialDelaySeconds: 30

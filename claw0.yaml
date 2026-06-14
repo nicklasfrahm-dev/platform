@@ -33,6 +33,18 @@ spec:
             models:
               - id: "gemma4-26b"
                 name: "Gemma4 26B"
+      gateway:
+        mode: "local"
+      skills:
+        entries:
+          github:
+            enabled: true
+            env:
+              GITHUB_TOKEN: "${GITHUB_TOKEN}" # injected from the secret above
+          web-search:
+            enabled: true
+      tools:
+        profile: "coding"
 
   # --- Storage: default storage class, 50Gi ---
   storage:

@@ -3,6 +3,8 @@ tempo:
 
   tempo:
     reportingEnabled: false
+    server:
+      log_format: json
     storage:
       trace:
         backend: local
@@ -38,7 +40,11 @@ tempo:
   tempoQuery:
     enabled: false
 
-  # Traces only need to survive for the life of the pod, same as the Jaeger
-  # setup it replaces, so skip the PVC and use the chart's default emptyDir.
+  # Back /var/tempo with a PVC so traces survive pod restarts, not just for
+  # the life of the pod.
   persistence:
-    enabled: false
+    enabled: true
+    storageClassName: ceph-block
+    # 24h retention on a homelab's trace volume; the Jaeger setup this
+    # replaces only needed a 256Mi badger volume for the same window.
+    size: 1Gi

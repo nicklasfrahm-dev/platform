@@ -13,6 +13,11 @@ spec:
   envFrom:
     - secretRef:
         name: claw-0
+  env:
+    - name: BASH_ENV
+      value: /home/openclaw/.openclaw/.gvm/scripts/gvm
+    - name: PATH
+      value: "/home/openclaw/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   # ── Skills ──────────────────────────────────────────────────────────────────
   # "github" is a bundled skill; it auto-activates when `gh` is on PATH.
   # The operator runs skill installs in a dedicated init container.
@@ -42,6 +47,7 @@ spec:
       - "skills.allowBundled"
       - "skills.entries.github"
       - "channels.telegram"
+      - "tools.profile"
       - "tools.allow"
       - "tools.deny"
     # ── openclaw.json (inline) ─────────────────────────────────────────────────
@@ -77,14 +83,19 @@ spec:
             default: true
       # ── Tools ────────────────────────────────────────────────────────────────
       tools:
-        profile: "coding"
         allow:
           - "group:fs"
           - "group:runtime"
           - "group:web"
           - "group:sessions"
           - "cron"
-          - "gh" # GitHub CLI, available because we installed the "github" skill
+          - "message"
+          - "agents_list"
+          - "gateway"
+          - "nodes"
+          - "create_goal"
+          - "get_goal"
+          - "update_goal"
         deny:
           - "browser"
           - "canvas"
@@ -176,7 +187,24 @@ spec:
           assumptions in a brief Telegram message and proceed with them.
         - Identify which packages, files, and interfaces are affected.
 
-        ### 2. Understand the Codebase
+        ### 2. Clone and Understand the Codebase
+
+        Clone the repo into `~/.openclaw/repos/<owner>/<repo>` if not already
+        present, then work from that directory for all subsequent steps:
+
+        ```
+        mkdir -p ~/.openclaw/repos/<owner>
+        git clone https://github.com/<owner>/<repo>.git ~/.openclaw/repos/<owner>/<repo>
+        cd ~/.openclaw/repos/<owner>/<repo>
+        ```
+
+        If already cloned, pull the latest main instead:
+
+        ```
+        cd ~/.openclaw/repos/<owner>/<repo> && git fetch origin && git checkout main && git pull
+        ```
+
+        Then explore the code:
 
         - `read` the relevant Go files. Prefer `go list ./...` and `grep` over
           reading every file blindly.
@@ -193,7 +221,24 @@ spec:
 
         Never commit directly to `main` or `master`.
 
-        ### 4. Implement
+        ### 4. Set Up Go Version
+
+        GVM is pre-installed and the latest stable Go is active by default.
+        Check the required version:
+
+        ```
+        cat go.mod | grep '^go '
+        gvm list
+        ```
+
+        If the repo requires a different version, install and activate it in
+        a single exec call (shell state does not persist between calls):
+
+        ```
+        gvm install go<VERSION> -B && gvm use go<VERSION> && go test ./...
+        ```
+
+        ### 5. Implement
 
         Write idiomatic Go:
 
@@ -212,7 +257,7 @@ spec:
 
         If tests fail, fix them before moving on.
 
-        ### 5. Lint
+        ### 6. Lint
 
         ```
         golangci-lint run ./...
@@ -225,7 +270,7 @@ spec:
         staticcheck ./...
         ```
 
-        ### 6. Open the Pull Request
+        ### 7. Open the Pull Request
 
         ```
         gh pr create \
@@ -249,7 +294,7 @@ spec:
         )"
         ```
 
-        ### 7. Monitor CI
+        ### 8. Monitor CI
 
         After the PR is opened:
 
@@ -266,7 +311,7 @@ spec:
 
         3. When all checks pass, notify via Telegram: "✅ CI green on PR #<N>".
 
-        ### 8. Resolve Review Comments
+        ### 9. Resolve Review Comments
 
         Poll for new review comments every 5 minutes using cron while the PR is open:
 
@@ -290,7 +335,7 @@ spec:
         gh pr edit <PR_NUMBER> --add-reviewer <original-reviewer>
         ```
 
-        ### 9. Merge Readiness
+        ### 10. Merge Readiness
 
         Notify via Telegram when:
         - All CI checks are green AND
@@ -353,6 +398,93 @@ spec:
         - Never modify `go.mod` / `go.sum` without running `go mod tidy` afterward.
         - If a test you did not write starts failing due to your changes, fix the
           underlying issue — do not delete or skip the test.
+  # ── Extra init containers ────────────────────────────────────────────────────
+  # The CSI driver provisions the PVC root as root:root. OpenClaw's exec tool
+  # always tries to chmod /home/openclaw/.openclaw before running commands, which
+  # fails if root owns it. This init container (runs after operator init containers)
+  # fixes ownership so UID 1000 (node) can chmod it.
+  initContainers:
+    - name: init-pvc-ownership
+      image: busybox:1.37
+      command: ["sh", "-c", "chown -R 1000:1000 /data && chmod 700 /data"]
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        allowPrivilegeEscalation: false
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+      volumeMounts:
+        - name: data
+          mountPath: /data
+    - name: init-gvm
+      image: debian:12-slim
+      command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          if ls /home/openclaw/.gvm/gos/ 2>/dev/null | grep -q '^go'; then
+            echo "GVM with Go already installed, skipping"
+            exit 0
+          fi
+          apt-get update -qq && apt-get install -y -qq curl git bison bsdmainutils
+          curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer -o /tmp/gvm-installer
+          GVM_NO_UPDATE_PROFILE=true HOME=/home/openclaw bash /tmp/gvm-installer
+          source /home/openclaw/.gvm/scripts/gvm
+          LATEST_GO=$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1 | tr -d '[:space:]')
+          gvm install ${LATEST_GO} -B
+          gvm use ${LATEST_GO} --default
+          chown -R 1000:1000 /home/openclaw/.gvm
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        allowPrivilegeEscalation: false
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+      volumeMounts:
+        - name: data
+          mountPath: /home/openclaw
+    - name: init-gh
+      image: alpine:3.20
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          if [ -f /home/openclaw/.local/bin/gh ]; then
+            echo "gh already installed, skipping"
+            exit 0
+          fi
+          apk add --no-cache curl tar
+          GH_VERSION=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | grep '"tag_name"' | sed 's/.*"v//;s/".*//')
+          curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" | tar -xz -C /tmp
+          mkdir -p /home/openclaw/.local/bin
+          install -m 755 /tmp/gh_${GH_VERSION}_linux_amd64/bin/gh /home/openclaw/.local/bin/gh
+          chown -R 1000:1000 /home/openclaw/.local/bin
+      securityContext:
+        runAsUser: 0
+        runAsNonRoot: false
+        allowPrivilegeEscalation: false
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"
+          memory: "64Mi"
+      volumeMounts:
+        - name: data
+          mountPath: /home/openclaw
   # ── Self-configure ───────────────────────────────────────────────────────────
   selfConfigure:
     enabled: true
@@ -404,13 +536,15 @@ spec:
         - ports:
             - protocol: TCP
               port: 443
+            - protocol: TCP
+              port: 80
           to:
             - ipBlock:
                 cidr: "0.0.0.0/0"
-                # except:
-                #   - "10.0.0.0/8"
-                #   - "192.168.0.0/16"
-                #   - "172.16.0.0/12"
+                except:
+                  - "10.0.0.0/8"
+                  - "192.168.0.0/16"
+                  - "172.16.0.0/12"
   # ── Probes ───────────────────────────────────────────────────────────────────
   probes:
     startup:

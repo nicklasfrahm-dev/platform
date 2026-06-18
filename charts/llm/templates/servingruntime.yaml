@@ -34,9 +34,19 @@ spec:
         # Disable tqdm progress bars (weight loading and CUDA graph capture) so
         # they do not emit non-JSON lines to the console.
         - "--no-use-tqdm-on-load"
+        {{- if .Values.tracing.enabled }}
+        - "--otlp-traces-endpoint={{ .Values.tracing.otlpEndpoint }}"
+        {{- end }}
       env:
         - name: MODEL_ID
           value: ""
+        {{- if .Values.tracing.enabled }}
+        - name: OTEL_SERVICE_NAME
+          value: "{{ .Release.Name }}"
+        # Jaeger's OTLP receiver has no TLS configured.
+        - name: OTEL_EXPORTER_OTLP_TRACES_INSECURE
+          value: "true"
+        {{- end }}
         - name: HUGGING_FACE_HUB_TOKEN
           valueFrom:
             secretKeyRef:

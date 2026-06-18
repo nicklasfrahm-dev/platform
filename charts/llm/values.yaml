@@ -1,6 +1,6 @@
 runtime:
   vllm:
-    version: "v0.22.0"
+    version: "v0.23.0"
 
 gpu:
   name: rtx3090
@@ -20,7 +20,10 @@ gpu:
 model:
   name: gemma4-26b
   profile:
-    # Stable: RTX 3090 (24GB)
+    # Stable: RTX 3090 (24GB). Hybrid attention with sliding window
+    # does not scale with every token of context, so 4 sequences with
+    # long context is viable; 4-bit quantization and other optimizations
+    # are what make this possible.
     gemma4-26b:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
@@ -37,23 +40,26 @@ model:
         - "--max-model-len=180224"
         - "--max-num-batched-tokens=8192"
         - "--enable-chunked-prefill"
-    # Stable: RTX 3090 (24GB)
-    devstral-small:
-      modelId: "cyankiwi/Devstral-Small-2507-AWQ-4bit"
-      servedModelName: "devstral-small"
-      args:
-        - "--max-model-len=50176"
-        - "--quantization=awq_marlin"
-        - "--tokenizer-mode=mistral"
-        - "--tool-call-parser=mistral"
-    # Stable: RTX 3090 (24GB)
+    # Stable: RTX 3090 (24GB). Dense attention on all 48 layers (no sliding
+    # window, no vision tower), so unlike gemma4 the KV cache scales with
+    # every token of context. fp8_e5m2 KV cache is rejected by vLLM for this
+    # checkpoint ("fp8_e5m2 kv-cache is not supported with fp8 checkpoints",
+    # likely from the fp8-quantized MoE expert weights), so this is sized for
+    # default (bf16) KV cache instead. With maxNumSeqs=4 the ~57K-token KV
+    # pool is shared, not reserved per sequence, so 4 concurrent requests
+    # near max-model-len will not all fit at once.
     qwen3-coder-30b:
       modelId: "cyankiwi/Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit"
       servedModelName: "qwen3-coder-30b"
+      maxNumSeqs: 4
       args:
-        - "--max-model-len=51200"
-        - "--quantization=compressed-tensors"
+        # Model capability optimizations.
         - "--tool-call-parser=qwen3_coder"
+        # Memory and performance optimizations.
+        - "--quantization=compressed-tensors"
+        - "--max-model-len=49152"
+        - "--max-num-batched-tokens=8192"
+        - "--enable-chunked-prefill"
     # Untested: RTX 3090 (24GB), 17.2 GiB weights may leave little room for KV cache.
     glm47-flash:
       modelId: "cyankiwi/GLM-4.7-Flash-AWQ-4bit"
@@ -63,68 +69,12 @@ model:
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=glm47"
         - "--reasoning-parser=glm45"
-      vllm:
-        version: "gemma4"
-    # Untested: RTX 3090 (24GB)
-    qwen25-coder-32b:
-      modelId: "Qwen/Qwen2.5-Coder-32B-Instruct-AWQ"
-      servedModelName: "qwen25-coder-32b"
-      args:
-        - "--max-model-len=40960"
-        - "--quantization=awq_marlin"
-        - "--tool-call-parser=hermes"
-        - "--rope-scaling=linear"
-        - "--rope-factor=2.0"
-    # Untested: RTX 3090 (24GB)
-    qwen35-27b:
-      modelId: "cyankiwi/Qwen3.5-27B-AWQ-4bit"
-      servedModelName: "qwen35-27b"
-      args:
-        - "--max-model-len=65536"
-        - "--quantization=awq_marlin"
-        - "--reasoning-parser=qwen3"
-        - "--tool-call-parser=qwen3_coder"
-    # Untested: RTX 3090 (24GB)
-    qwen35-35b:
-      modelId: "Intel/Qwen3.5-35B-A3B-int4-AutoRound"
-      servedModelName: "qwen35-35b"
-      args:
-        - "--max-model-len=32768"
-        - "--quantization=compressed-tensors"
-        - "--language-model-only"
-        - "--reasoning-parser=qwen3"
-        - "--tool-call-parser=qwen3_coder"
-    # Untested: RTX 3090 (24GB)
-    qwen36-35b:
-      modelId: "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit"
-      servedModelName: "qwen36-35b"
-      args:
-        - "--max-model-len=65536"
-        - "--quantization=compressed-tensors"
-        - "--language-model-only"
-        - "--reasoning-parser=qwen3"
-        - "--tool-call-parser=qwen3_coder"
-    # Active: RTX 3090 (24GB), deployed on cph02
-    qwen36-27b:
-      modelId: "Intel/Qwen3.6-27B-int4-AutoRound"
-      servedModelName: "qwen36-27b"
-      args:
-        - "--max-model-len=65536"
-        - "--quantization=compressed-tensors"
-        - "--reasoning-parser=qwen3"
-        - "--tool-call-parser=qwen3_coder"
-        - "--enable-chunked-prefill"
-        - "--max-num-batched-tokens=8192"
-        - "--kv-cache-dtype=fp8_e5m2"
-    # Untested: RTX 3090 (24GB)
-    qwen3-30b:
-      modelId: "QuixiAI/Qwen3-30B-A3B-AWQ"
-      servedModelName: "qwen3-30b"
-      args:
-        - "--max-model-len=40960"
-        - "--quantization=awq_marlin"
-        - "--tool-call-parser=hermes"
-        - "--reasoning-parser=deepseek_r1"
+
+tracing:
+  enabled: true
+  # gRPC endpoint of the platform Tempo OTLP receiver (see charts/tempo).
+  # Cross-namespace, so the short Service DNS name is enough.
+  otlpEndpoint: "grpc://tempo.monitoring-system:4317"
 
 route:
   hostname: "llm.cph02.nicklasfrahm.dev"

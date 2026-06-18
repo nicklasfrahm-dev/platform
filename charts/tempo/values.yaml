@@ -1,0 +1,32 @@
+tempo:
+  enabled: true
+
+  tempo:
+    reportingEnabled: false
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+    retention: 24h
+
+    # Satisfy the restricted PodSecurity standard explicitly, since the
+    # chart's pod-level defaults don't set allowPrivilegeEscalation/capabilities.
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      seccompProfile:
+        type: RuntimeDefault
+
+  # Jaeger-compatible query UI sidecar: not needed since Grafana queries
+  # Tempo's HTTP API directly (see charts/grafana's Tempo datasource).
+  tempoQuery:
+    enabled: false
+
+  # Traces only need to survive for the life of the pod, same as the Jaeger
+  # setup it replaces, so skip the PVC and use the chart's default emptyDir.
+  persistence:
+    enabled: false

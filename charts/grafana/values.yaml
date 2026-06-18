@@ -4,8 +4,8 @@ grafana:
     datasources.yaml:
       apiVersion: 1
       datasources:
-        - name: Jaeger
-          type: jaeger
+        - name: Tempo
+          type: tempo
           access: proxy
-          url: http://jaeger.monitoring-system:16686
+          url: http://tempo.monitoring-system:3200
           editable: false

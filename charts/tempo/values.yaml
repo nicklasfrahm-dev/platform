@@ -3,6 +3,8 @@ tempo:
 
   tempo:
     reportingEnabled: false
+    server:
+      log_format: json
     storage:
       trace:
         backend: local

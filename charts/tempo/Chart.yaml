@@ -3,7 +3,7 @@ type: application
 name: tempo
 description: Deploy Grafana Tempo for distributed tracing with ephemeral, short-retention storage.
 icon: https://raw.githubusercontent.com/grafana/tempo/main/cmd/tempo/app/static/tempo-icon.png
-version: 0.1.1
+version: 0.1.2
 appVersion: "2.2.3"
 dependencies:
   - repository: oci://ghcr.io/grafana-community/helm-charts

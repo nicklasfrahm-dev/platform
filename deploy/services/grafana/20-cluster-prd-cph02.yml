@@ -29,7 +29,6 @@ grafana:
       password: ${GF_DATABASE_PASSWORD}
     auth:
       disable_login_form: true
-      oauth_auto_login: true
     auth.generic_oauth:
       enabled: true
       name: Dex

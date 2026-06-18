@@ -12,6 +12,18 @@ tempo:
           path: /var/tempo/wal
     retention: 24h
 
+    # Grafana's TraceQL metrics queries (e.g. the rate() function Traces
+    # Drilldown uses) are served by the metrics-generator's local-blocks
+    # processor. Without it running, the querier's recent-data query path
+    # fails with "error finding generators: empty ring".
+    metricsGenerator:
+      enabled: true
+    overrides:
+      defaults:
+        metrics_generator:
+          processors:
+            - local-blocks
+
     # Satisfy the restricted PodSecurity standard explicitly, since the
     # chart's pod-level defaults don't set allowPrivilegeEscalation/capabilities.
     securityContext:

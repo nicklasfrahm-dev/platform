@@ -4,7 +4,7 @@ name: jaeger
 description: Deploy Jaeger for distributed tracing with ephemeral, short-retention storage.
 icon: https://www.jaegertracing.io/img/jaeger-icon-reverse-color.svg
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "4.11.1"
 dependencies:
   - repository: https://jaegertracing.github.io/helm-charts
     name: jaeger

@@ -45,3 +45,6 @@ tempo:
   persistence:
     enabled: true
     storageClassName: ceph-block
+    # 24h retention on a homelab's trace volume; the Jaeger setup this
+    # replaces only needed a 256Mi badger volume for the same window.
+    size: 1Gi

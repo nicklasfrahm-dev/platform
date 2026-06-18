@@ -1,2 +1,11 @@
 grafana:
   enabled: true
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Jaeger
+          type: jaeger
+          access: proxy
+          url: http://jaeger.monitoring-system:16686
+          editable: false

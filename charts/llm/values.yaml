@@ -1,21 +1,15 @@
 runtime:
   vllm:
-    version: "v0.23.0"
+    # vLLM image tag. Defaults to the chart appVersion when unset.
+    version: ""
 
 gpu:
-  name: rtx3090
-  profile:
-    rtx3090:
-      maxNumSeqs: 1
-      gpuMemoryUtilization: 0.985
-      tensorParallelSize: 1
-      resources:
-        limits:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
-        requests:
-          nvidia.com/gpu: 1
-          memory: "12Gi"
+  # Selects which GPU profile to run. GPU profiles are defined per model under
+  # model.profile.<name>.gpu.profile, so each model can be tuned for the
+  # hardware it runs on. Profile names follow the pattern
+  # <gpu>-<gpu_count>x[-mig-<core>sm<vram>gb], e.g. rtx3090-1x or
+  # a100-1x-mig-3sm40gb.
+  profile: rtx3090-1x
 
 model:
   name: gemma4-26b
@@ -27,7 +21,6 @@ model:
     gemma4-26b:
       modelId: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"
       servedModelName: "gemma4-26b"
-      maxNumSeqs: 4
       args:
         # Model capability optimizations.
         - "--chat-template=examples/tool_chat_template_gemma4.jinja"
@@ -40,26 +33,48 @@ model:
         - "--max-model-len=180224"
         - "--max-num-batched-tokens=8192"
         - "--enable-chunked-prefill"
+      gpu:
+        profile:
+          rtx3090-1x:
+            maxNumSeqs: 4
+            gpuMemoryUtilization: 0.985
+            tensorParallelSize: 1
+            resources: &rtx3090-1x-resources
+              requests:
+                nvidia.com/gpu: 1
+                memory: "12Gi"
+                cpu: 3
+              limits:
+                nvidia.com/gpu: 1
+                memory: "12Gi"
     # Stable: RTX 3090 (24GB). Dense attention on all 48 layers (no sliding
     # window, no vision tower), so unlike gemma4 the KV cache scales with
-    # every token of context. fp8_e5m2 KV cache is rejected by vLLM for this
-    # checkpoint ("fp8_e5m2 kv-cache is not supported with fp8 checkpoints",
-    # likely from the fp8-quantized MoE expert weights), so this is sized for
-    # default (bf16) KV cache instead. With maxNumSeqs=4 the ~57K-token KV
-    # pool is shared, not reserved per sequence, so 4 concurrent requests
-    # near max-model-len will not all fit at once.
+    # every token of context. The rtx3090-1x profile enables fp8 (e4m3) KV
+    # cache: fp8_e5m2 is rejected for this checkpoint ("fp8_e5m2 kv-cache is
+    # not supported with fp8 checkpoints"), but e4m3 fp8 is accepted and
+    # roughly doubles the KV pool. gpuMemoryUtilization is held at 0.975 (not
+    # 0.985) to leave activation headroom: at 0.985 the ~105K-token pool left
+    # too little free VRAM and forward passes OOM'd at runtime. At 0.975 the
+    # pool is ~100K tokens (~1.02x concurrency at max-model-len 98304).
     qwen3-coder-30b:
       modelId: "cyankiwi/Qwen3-Coder-30B-A3B-Instruct-AWQ-4bit"
       servedModelName: "qwen3-coder-30b"
-      maxNumSeqs: 4
       args:
         # Model capability optimizations.
         - "--tool-call-parser=qwen3_coder"
         # Memory and performance optimizations.
         - "--quantization=compressed-tensors"
-        - "--max-model-len=49152"
+        - "--max-model-len=98304"
         - "--max-num-batched-tokens=8192"
         - "--enable-chunked-prefill"
+      gpu:
+        profile:
+          rtx3090-1x:
+            maxNumSeqs: 4
+            gpuMemoryUtilization: 0.975
+            kvCacheDtype: fp8
+            tensorParallelSize: 1
+            resources: *rtx3090-1x-resources
     # Untested: RTX 3090 (24GB), 17.2 GiB weights may leave little room for KV cache.
     glm47-flash:
       modelId: "cyankiwi/GLM-4.7-Flash-AWQ-4bit"
@@ -69,6 +84,13 @@ model:
         - "--quantization=compressed-tensors"
         - "--tool-call-parser=glm47"
         - "--reasoning-parser=glm45"
+      gpu:
+        profile:
+          rtx3090-1x:
+            maxNumSeqs: 1
+            gpuMemoryUtilization: 0.985
+            tensorParallelSize: 1
+            resources: *rtx3090-1x-resources
 
 tracing:
   enabled: true

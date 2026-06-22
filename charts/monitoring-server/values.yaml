@@ -97,6 +97,9 @@ loki:
   loki:
     auth_enabled: false
 
+    server:
+      log_format: json
+
     commonConfig:
       # Must be <= singleBinary.replicas for highly-available writes.
       replication_factor: 3

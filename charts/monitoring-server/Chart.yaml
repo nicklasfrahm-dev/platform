@@ -3,7 +3,7 @@ type: application
 name: monitoring-server
 description: A monolithic Loki log store, a Mimir metrics store, and an Alloy OTEL gateway.
 icon: https://grafana.com/static/assets/img/blog/loki_logo.png
-version: 0.2.1
+version: 0.2.2
 appVersion: "3.6.7"
 dependencies:
   - repository: https://grafana.github.io/helm-charts

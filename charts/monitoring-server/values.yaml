@@ -222,6 +222,11 @@ mimir:
       server:
         log_format: json
 
+      # Single tenant: Grafana's Prometheus datasource doesn't send an
+      # X-Scope-OrgID header, and Mimir requires one unless multitenancy is
+      # disabled here, same as auth_enabled: false does for Loki above.
+      multitenancy_enabled: false
+
       # Classic architecture: the distributor pushes samples straight to the
       # ingesters over gRPC instead of through a Kafka-backed write-ahead log.
       ingest_storage:

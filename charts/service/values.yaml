@@ -74,3 +74,15 @@ probes:
     enabled: true
     port: 8081
     path: /startup
+
+# Annotation-based metrics autodiscovery (see monitoring-client's
+# annotationAutodiscovery feature, which scrapes pods carrying these
+# k8s.grafana.com annotations).
+metrics:
+  enabled: false
+  # Defaults to service.containerPort when empty.
+  port: ""
+  path: /metrics
+  # Defaults to the autodiscovery feature's own scrape interval/timeout when empty.
+  scrapeInterval: ""
+  scrapeTimeout: ""

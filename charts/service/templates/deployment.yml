@@ -13,6 +13,18 @@ spec:
   template:
     metadata:
       labels: {{- include "service.labels" . | nindent 8 }}
+      {{- if .Values.metrics.enabled }}
+      annotations:
+        k8s.grafana.com/scrape: "true"
+        k8s.grafana.com/metrics.portNumber: {{ .Values.metrics.port | default .Values.service.containerPort | quote }}
+        k8s.grafana.com/metrics.path: {{ .Values.metrics.path | quote }}
+        {{- if .Values.metrics.scrapeInterval }}
+        k8s.grafana.com/metrics.scrapeInterval: {{ .Values.metrics.scrapeInterval | quote }}
+        {{- end }}
+        {{- if .Values.metrics.scrapeTimeout }}
+        k8s.grafana.com/metrics.scrapeTimeout: {{ .Values.metrics.scrapeTimeout | quote }}
+        {{- end }}
+      {{- end }}
     spec:
       containers:
         - name: {{ .Release.Name | quote }}

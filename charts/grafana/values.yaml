@@ -1,8 +1,9 @@
 grafana:
   enabled: true
 
-  # Automatically provision the Loki log store (deployed by the
-  # monitoring-server release in the monitoring-system namespace) as a datasource.
+  # Automatically provision the Loki log store and Mimir metrics store (both
+  # deployed by the monitoring-server release in the monitoring-system
+  # namespace) as datasources.
   datasources:
     datasources.yaml:
       apiVersion: 1
@@ -17,4 +18,13 @@ grafana:
           type: loki
           access: proxy
           url: http://monitoring-server-loki.monitoring-system:3100
+          isDefault: false
+        - name: Mimir
+          uid: mimir
+          type: prometheus
+          access: proxy
+          # Query-frontend is Mimir's read-path entry point; it serves the
+          # Prometheus-compatible API itself under "/prometheus", same as it
+          # would behind the (disabled) nginx gateway.
+          url: http://monitoring-server-mimir-query-frontend.monitoring-system:8080/prometheus
           isDefault: false

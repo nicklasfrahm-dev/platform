@@ -1,5 +1,5 @@
 {{- $model := index .Values.model.profile .Values.model.name }}
-{{- $gpu := index .Values.gpu.profile .Values.gpu.name }}
+{{- $gpu := index $model.gpu.profile .Values.gpu.profile }}
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:

@@ -1,6 +1,6 @@
 {{- $model := index .Values.model.profile .Values.model.name }}
-{{- $gpu := index .Values.gpu.profile .Values.gpu.name }}
-{{- $version := (($model).vllm).version | default .Values.runtime.vllm.version }}
+{{- $gpu := index $model.gpu.profile .Values.gpu.profile }}
+{{- $version := (($model).vllm).version | default .Values.runtime.vllm.version | default .Chart.AppVersion }}
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
@@ -18,12 +18,12 @@ spec:
         - "$(MODEL_ID)"
         - "--tensor-parallel-size={{ $gpu.tensorParallelSize }}"
         - "--gpu-memory-utilization={{ $gpu.gpuMemoryUtilization }}"
-        - "--dtype=auto"
+        - "--dtype={{ $gpu.dtype | default "auto" }}"
         {{- if $gpu.kvCacheDtype }}
         - "--kv-cache-dtype={{ $gpu.kvCacheDtype }}"
         {{- end }}
         - "--trust-remote-code"
-        - "--max-num-seqs={{ $model.maxNumSeqs | default $gpu.maxNumSeqs }}"
+        - "--max-num-seqs={{ $gpu.maxNumSeqs }}"
         - "--enable-server-load-tracking"
         - "--middleware=backpressure.BackpressureMiddleware"
         - "--enable-auto-tool-choice"

@@ -1,0 +1,2 @@
+# Base values for the monitoring-server release. Cluster admission for the OTEL
+# gateway is configured per cluster in 20-cluster-<cluster>.yml.

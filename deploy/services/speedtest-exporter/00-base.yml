@@ -1,0 +1,31 @@
+# Image configuration - override default image
+image:
+  repository: "ghcr.io/danopstech/speedtest_exporter"
+  tag: "v0.0.5"
+
+# Service configuration - override default port
+service:
+  port: 9090
+  containerPort: 9090
+
+# Resource configuration - override default resources
+resources:
+  cpu: 100m
+  memory: 128Mi
+
+# Probe configuration - override default probe paths
+probes:
+  liveness:
+    port: 9090
+    path: /health
+  readiness:
+    port: 9090
+    path: /health
+  startup:
+    port: 9090
+    path: /health
+
+# Disable autoscaling for Prometheus exporter
+autoscaling:
+  enabled: false
+  minReplicas: 1

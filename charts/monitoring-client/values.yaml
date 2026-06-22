@@ -71,9 +71,9 @@ k8s-monitoring:
     resources:
       requests:
         cpu: "50m"
-        memory: "192Mi"
+        memory: "128Mi"
       limits:
-        memory: "192Mi"
+        memory: "128Mi"
 
   # kube-state-metrics and node-exporter aren't deployed elsewhere in this
   # cluster yet, so let this chart deploy them.

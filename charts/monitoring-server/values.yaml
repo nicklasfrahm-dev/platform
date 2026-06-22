@@ -32,6 +32,11 @@ otel-gateway:
         memory: "256Mi"
     configMap:
       content: |
+        logging {
+          level  = "info"
+          format = "json"
+        }
+
         // OTLP gateway: accept telemetry over gRPC (4317) and HTTP (4318) and
         // forward logs to the in-cluster Loki store via its native OTLP endpoint.
         otelcol.receiver.otlp "gateway" {
@@ -145,9 +150,14 @@ loki:
       - "-config.expand-env=true"
     extraEnvFrom:
       # Object bucket claim outputs: BUCKET_HOST/PORT/NAME/REGION (ConfigMap).
+      # Loki's chart renders this verbatim (not through tpl), so it can't use
+      # the "monitoring-server.logsBucket" helper: if this chart is ever
+      # installed under a release name other than "monitoring-server", update
+      # "name" below to "<release_name>-logs" to match.
       - configMapRef:
           name: monitoring-server-logs
-      # Object bucket claim outputs: AWS_ACCESS_KEY_ID/SECRET (Secret).
+      # Object bucket claim outputs: AWS_ACCESS_KEY_ID/SECRET (Secret). Same
+      # "<release_name>-logs" caveat as the configMapRef above.
       - secretRef:
           name: monitoring-server-logs
     persistence:
@@ -182,10 +192,11 @@ loki:
   test:
     enabled: false
 
-# The Ceph object bucket that backs Loki's long-term log storage (see
-# templates/objectbucketclaim.yaml). Disabled by default; enable per cluster
-# once the bucket should actually be provisioned (see deploy/services).
-logsBucket:
-  enabled: false
-  name: monitoring-server-logs
-  storageClassName: ceph-bucket
+# Ceph object buckets provisioned by this chart (see templates/objectbucketclaim.yaml).
+cephBuckets:
+  # Backs Loki's long-term log storage. Named "<release_name>-logs" via the
+  # "monitoring-server.logsBucket" helper. Disabled by default; enable per
+  # cluster once the bucket should actually be provisioned (see deploy/services).
+  logs:
+    enabled: false
+    storageClassName: ceph-bucket

@@ -5,3 +5,11 @@ tenants:
     enabled: true
   monitoring-system:
     enabled: true
+    # node-exporter and Alloy's log collector need hostPath/hostNetwork/
+    # hostPID/hostPort, which Kubernetes' "baseline" Pod Security Standard
+    # (the cluster's default, set in the Talos control plane config)
+    # disallows outright. There's no narrower exemption for just those
+    # controls, so this namespace needs "privileged".
+    namespace:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged

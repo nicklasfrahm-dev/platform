@@ -1,0 +1,12 @@
+# Ship this cluster's logs and metrics to monitoring-server's public OTEL
+# gateway, identifying as "cph02" (see monitoring-server's
+# auth.clusters.cph02 admission and its otel.nicklasfrahm.dev route).
+k8s-monitoring:
+  cluster:
+    name: cph02
+
+  destinations:
+    monitoring-server:
+      url: https://otel.nicklasfrahm.dev
+      extraHeaders:
+        X-Cluster: cph02

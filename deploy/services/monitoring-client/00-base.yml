@@ -1,0 +1,2 @@
+# Base values for the monitoring-client release. Cluster identity and the
+# OTEL gateway destination are configured per cluster in 20-cluster-<cluster>.yml.

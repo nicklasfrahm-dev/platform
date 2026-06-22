@@ -1,0 +1,16 @@
+apiVersion: v2
+type: application
+name: monitoring-client
+description: Ship cluster logs and metrics to the public OTEL gateway via Grafana's k8s-monitoring chart.
+icon: https://grafana.com/static/assets/img/blog/grafana_icon.png
+version: 0.1.0
+appVersion: "4.1.6"
+dependencies:
+  - repository: https://grafana.github.io/helm-charts
+    name: k8s-monitoring
+    version: 4.1.6
+    condition: k8s-monitoring.enabled
+    tags:
+      - observability
+      - k8s-monitoring
+      - otel

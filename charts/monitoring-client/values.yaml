@@ -1,0 +1,137 @@
+# Values for the upstream grafana/k8s-monitoring subchart.
+# See https://github.com/grafana/k8s-monitoring-helm/blob/main/charts/k8s-monitoring/values.yaml
+#
+# Cluster identity (cluster.name) and the OTLP destination's url/extraHeaders
+# are cluster-specific and are set per cluster in deploy/services overlays,
+# not here.
+k8s-monitoring:
+  enabled: true
+
+  cluster:
+    # Required by the upstream chart's own validation. Overridden with the
+    # real cluster name per cluster in deploy/services overlays.
+    name: "unconfigured"
+
+  # Ship telemetry to monitoring-server's public OTEL gateway (see the
+  # monitoring-server chart's otel-gateway). Authenticates with this pod's own
+  # projected ServiceAccount token: the gateway validates it against this
+  # cluster's own OIDC issuer JWKS, so no extra credentials are needed.
+  destinations:
+    monitoring-server:
+      type: otlp
+      protocol: http
+      url: ""
+      metrics:
+        enabled: true
+      logs:
+        enabled: true
+      traces:
+        enabled: false
+      auth:
+        type: bearerToken
+        bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      extraHeaders:
+        X-Cluster: ""
+
+  clusterMetrics:
+    enabled: true
+    collector: alloy-metrics
+    kube-state-metrics:
+      # kube-state-metrics runs 2 replicas behind a Service for HA (see
+      # telemetryServices.kube-state-metrics.replicas below); scrape the
+      # Service so only one replica is sampled per cycle instead of both
+      # (which would double-count every metric).
+      discoveryType: service
+
+  hostMetrics:
+    enabled: true
+    collector: alloy-metrics
+
+  clusterEvents:
+    enabled: true
+    collector: alloy-singleton
+
+  podLogsViaOpenTelemetry:
+    enabled: true
+    collector: alloy-logs
+
+  # Scrapes any pod/service across all namespaces carrying the
+  # k8s.grafana.com/scrape annotation (see the service chart's `metrics`
+  # block for the producer side). namespaces is left empty so every
+  # namespace is included.
+  annotationAutodiscovery:
+    enabled: true
+    collector: alloy-metrics
+
+  # The Alloy Operator manages the Alloy custom resources below.
+  alloy-operator:
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        memory: "64Mi"
+
+  # kube-state-metrics and node-exporter aren't deployed elsewhere in this
+  # cluster yet, so let this chart deploy them.
+  telemetryServices:
+    kube-state-metrics:
+      # 2 replicas behind a Service for HA. kube-state-metrics is stateless
+      # (each replica computes the same full snapshot), so this needs no
+      # autosharding: only one replica answers a given scrape.
+      replicas: 2
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "128Mi"
+        limits:
+          memory: "128Mi"
+      deploy: true
+    node-exporter:
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+        limits:
+          memory: "64Mi"
+      deploy: true
+
+  # Each Alloy collector instance. See
+  # https://github.com/grafana/k8s-monitoring-helm/blob/main/charts/k8s-monitoring/docs/collectors/README.md
+  collectors:
+    # Scrapes cluster and host metrics; clustering distributes scrape targets
+    # across replicas.
+    alloy-metrics:
+      presets: [clustered, statefulset]
+      alloy:
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            memory: "256Mi"
+
+    # Reads pod logs from each node's filesystem.
+    alloy-logs:
+      presets: [daemonset, filesystem-log-reader]
+      alloy:
+        # Required by the (public-preview) Pod Logs via OpenTelemetry feature.
+        stabilityLevel: public-preview
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            memory: "128Mi"
+
+    # Watches Kubernetes events; must run as a single instance to avoid
+    # duplicate events.
+    alloy-singleton:
+      presets: [singleton, deployment]
+      alloy:
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            memory: "128Mi"

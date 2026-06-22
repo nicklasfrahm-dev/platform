@@ -29,3 +29,10 @@ probes:
 autoscaling:
   enabled: false
   minReplicas: 1
+
+# Each scrape runs an actual speedtest, so use a long interval/timeout
+# (upstream's own recommendation: https://github.com/danopstech/speedtest_exporter).
+metrics:
+  enabled: true
+  scrapeInterval: 60m
+  scrapeTimeout: 60s

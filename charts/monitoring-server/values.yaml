@@ -38,7 +38,8 @@ otel-gateway:
         }
 
         // OTLP gateway: accept telemetry over gRPC (4317) and HTTP (4318) and
-        // forward logs to the in-cluster Loki store via its native OTLP endpoint.
+        // forward logs to Loki and metrics to Mimir via their native OTLP
+        // endpoints.
         otelcol.receiver.otlp "gateway" {
           grpc {
             endpoint = "0.0.0.0:4317"
@@ -47,20 +48,28 @@ otel-gateway:
             endpoint = "0.0.0.0:4318"
           }
           output {
-            // Only logs have a backend (Loki); metrics and traces are dropped.
-            logs = [otelcol.processor.batch.gateway.input]
+            // Traces are dropped: no backend is wired up yet.
+            logs    = [otelcol.processor.batch.gateway.input]
+            metrics = [otelcol.processor.batch.gateway.input]
           }
         }
 
         otelcol.processor.batch "gateway" {
           output {
-            logs = [otelcol.exporter.otlphttp.loki.input]
+            logs    = [otelcol.exporter.otlphttp.loki.input]
+            metrics = [otelcol.exporter.otlphttp.mimir.input]
           }
         }
 
         otelcol.exporter.otlphttp "loki" {
           client {
             endpoint = "http://monitoring-server-loki:3100/otlp"
+          }
+        }
+
+        otelcol.exporter.otlphttp "mimir" {
+          client {
+            endpoint = "http://monitoring-server-mimir-distributor:8080/otlp"
           }
         }
 
@@ -195,11 +204,149 @@ loki:
   test:
     enabled: false
 
-# Ceph object buckets provisioned by this chart (see templates/objectbucketclaim.yaml).
+# Values for the upstream grafana/mimir-distributed subchart (aliased "mimir").
+# See https://github.com/grafana/mimir/blob/main/operations/helm/charts/mimir-distributed/values.yaml
+mimir:
+  enabled: true
+
+  mimir:
+    structuredConfig:
+      # Classic architecture: the distributor pushes samples straight to the
+      # ingesters over gRPC instead of through a Kafka-backed write-ahead log.
+      ingest_storage:
+        enabled: false
+      ingester:
+        push_grpc_method_enabled: true
+
+      # Block storage lives in the Ceph object bucket (see objectbucketclaim.yaml).
+      # The ${...} values are populated at runtime from the bucket claim's
+      # generated ConfigMap and Secret (wired in via global.extraEnvFrom).
+      # "common.storage" seeds blocks_storage (and alertmanager/ruler storage,
+      # both disabled below) with the same S3 backend.
+      common:
+        storage:
+          backend: s3
+          s3:
+            bucket_name: ${BUCKET_NAME}
+            endpoint: ${BUCKET_HOST}:${BUCKET_PORT}
+            region: ${BUCKET_REGION}
+            access_key_id: ${AWS_ACCESS_KEY_ID}
+            secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+            # RGW is reached over plain HTTP inside the cluster and needs
+            # path-style bucket addressing, same as Loki's S3 client.
+            insecure: true
+            bucket_lookup_type: path
+
+  global:
+    extraEnvFrom:
+      # Object bucket claim outputs: BUCKET_HOST/PORT/NAME/REGION (ConfigMap).
+      # Rendered verbatim (not through tpl) by the mimir subchart, so it can't
+      # use the "monitoring-server.metricsBucket" helper: if this chart is
+      # ever installed under a release name other than "monitoring-server",
+      # update "name" below to "<release_name>-metrics" to match.
+      - configMapRef:
+          name: monitoring-server-metrics
+      # Object bucket claim outputs: AWS_ACCESS_KEY_ID/SECRET (Secret). Same
+      # "<release_name>-metrics" caveat as the configMapRef above.
+      - secretRef:
+          name: monitoring-server-metrics
+
+  # No Kafka-backed ingest storage; avoid the extra Kafka deployment.
+  kafka:
+    enabled: false
+
+  # No demo object storage; blocks live in the Ceph bucket instead.
+  minio:
+    enabled: false
+
+  # Out of scope for now: no alerting or recording/alerting rules.
+  alertmanager:
+    enabled: false
+  ruler:
+    enabled: false
+
+  # No public query path yet; skip the bundled nginx gateway.
+  gateway:
+    enabled: false
+
+  # Skip the per-tenant limits exporter; not needed for a single tenant.
+  overrides_exporter:
+    enabled: false
+
+  ingester:
+    persistentVolume:
+      storageClass: ceph-block
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+
+  distributor:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+
+  querier:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        memory: "128Mi"
+
+  query_frontend:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        memory: "128Mi"
+
+  query_scheduler:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        memory: "128Mi"
+
+  store_gateway:
+    persistentVolume:
+      storageClass: ceph-block
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+
+  compactor:
+    persistentVolume:
+      storageClass: ceph-block
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+
+# Ceph object buckets provisioned by this chart (see templates/*/objectbucketclaim.yaml).
 cephBuckets:
   # Backs Loki's long-term log storage. Named "<release_name>-logs" via the
   # "monitoring-server.logsBucket" helper. Disabled by default; enable per
   # cluster once the bucket should actually be provisioned (see deploy/services).
   logs:
+    enabled: false
+    storageClassName: ceph-bucket
+
+  # Backs Mimir's block storage. Named "<release_name>-metrics" via the
+  # "monitoring-server.metricsBucket" helper. Disabled by default; enable per
+  # cluster once the bucket should actually be provisioned (see deploy/services).
+  metrics:
     enabled: false
     storageClassName: ceph-bucket

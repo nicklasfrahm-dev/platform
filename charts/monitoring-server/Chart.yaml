@@ -1,9 +1,9 @@
 apiVersion: v2
 type: application
 name: monitoring-server
-description: A monolithic Loki log store fronted by an Alloy OTEL gateway.
+description: A monolithic Loki log store, a Mimir metrics store, and an Alloy OTEL gateway.
 icon: https://grafana.com/static/assets/img/blog/loki_logo.png
-version: 0.1.1
+version: 0.2.0
 appVersion: "3.6.7"
 dependencies:
   - repository: https://grafana.github.io/helm-charts
@@ -14,6 +14,16 @@ dependencies:
       - observability
       - loki
       - logs
+  - repository: https://grafana.github.io/helm-charts
+    name: mimir-distributed
+    # Aliased so the chart is configured under the shorter "mimir" key.
+    alias: mimir
+    version: 6.0.6
+    condition: mimir.enabled
+    tags:
+      - observability
+      - mimir
+      - metrics
   - repository: https://grafana.github.io/helm-charts
     name: alloy
     # Aliased so the OTEL gateway is configured under the "otel-gateway" key.

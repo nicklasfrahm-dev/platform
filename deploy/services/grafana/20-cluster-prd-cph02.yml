@@ -2,14 +2,6 @@ grafana:
   replicas: 2
   podDisruptionBudget:
     maxUnavailable: "50%"
-  # Jaeger was retired in favor of Tempo (#321), but Grafana keeps the old
-  # datasource around as provisioned, which blocks deleting it via the UI.
-  datasources:
-    datasources.yaml:
-      deleteDatasources:
-        - name: Jaeger
-          orgId: 1
-
   route:
     main:
       enabled: true

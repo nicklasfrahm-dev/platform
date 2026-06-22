@@ -93,8 +93,9 @@ route:
 
 auth:
   # Path appended to https://oidc.<cluster>.<platform.domain> for the JWKS.
-  # NOTE: the llm chart uses "/openid/v1/jwks"; reconcile if they must match.
-  jwksPath: "/v1/openid/jwks"
+  # Matches the Kubernetes API server's own OIDC discovery path (also used by
+  # the llm chart's jwksUri), not "/v1/openid/jwks".
+  jwksPath: "/openid/v1/jwks"
   # Each "true" entry admits a cluster: it creates an HTTPRoute matching
   # "X-Cluster: <cluster>" plus a SecurityPolicy that accepts JWTs from
   # https://oidc.<cluster>.<platform.domain><jwksPath>.

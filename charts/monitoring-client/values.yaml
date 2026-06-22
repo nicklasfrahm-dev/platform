@@ -63,14 +63,17 @@ k8s-monitoring:
     enabled: true
     collector: alloy-metrics
 
-  # The Alloy Operator manages the Alloy custom resources below.
+  # The Alloy Operator manages the Alloy custom resources below. It watches
+  # every namespace plus several resource kinds cluster-wide, which needs
+  # more headroom than a typical sidecar controller: 64Mi was OOMKilling it
+  # repeatedly, which also left the alloy-metrics StatefulSet half-reconciled.
   alloy-operator:
     resources:
       requests:
         cpu: "50m"
-        memory: "64Mi"
+        memory: "128Mi"
       limits:
-        memory: "64Mi"
+        memory: "128Mi"
 
   # kube-state-metrics and node-exporter aren't deployed elsewhere in this
   # cluster yet, so let this chart deploy them.

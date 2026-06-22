@@ -182,12 +182,10 @@ loki:
   test:
     enabled: false
 
-  # Provision the Ceph object bucket that backs long-term log storage.
-  extraObjects:
-    - apiVersion: objectbucket.io/v1alpha1
-      kind: ObjectBucketClaim
-      metadata:
-        name: monitoring-server-logs
-      spec:
-        generateBucketName: monitoring-server-logs
-        storageClassName: ceph-bucket
+# The Ceph object bucket that backs Loki's long-term log storage (see
+# templates/objectbucketclaim.yaml). Disabled by default; enable per cluster
+# once the bucket should actually be provisioned (see deploy/services).
+logsBucket:
+  enabled: false
+  name: monitoring-server-logs
+  storageClassName: ceph-bucket

@@ -3,3 +3,7 @@
 auth:
   clusters:
     cph02: true
+
+# Provision the Ceph object bucket backing Loki's log storage on this cluster.
+logsBucket:
+  enabled: true

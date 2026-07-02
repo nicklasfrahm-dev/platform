@@ -1,12 +1,12 @@
 # Image configuration - override default image
 image:
-  repository: "ghcr.io/danopstech/speedtest_exporter"
-  tag: "v0.0.5"
+  repository: "ghcr.io/nicklasfrahm/prometheus-speedtest-exporter"
+  tag: "v1.0.1"
 
 # Service configuration - override default port
 service:
-  port: 9090
-  containerPort: 9090
+  port: 9516
+  containerPort: 9516
 
 # Resource configuration - override default resources
 resources:
@@ -16,14 +16,14 @@ resources:
 # Probe configuration - override default probe paths
 probes:
   liveness:
-    port: 9090
-    path: /health
+    port: 9516
+    path: /healthz
   readiness:
-    port: 9090
-    path: /health
+    port: 9516
+    path: /healthz
   startup:
-    port: 9090
-    path: /health
+    port: 9516
+    path: /healthz
 
 # Disable autoscaling for Prometheus exporter
 autoscaling:
@@ -31,7 +31,7 @@ autoscaling:
   minReplicas: 1
 
 # Each scrape runs an actual speedtest, so use a long interval/timeout
-# (upstream's own recommendation: https://github.com/danopstech/speedtest_exporter).
+# (see https://github.com/nicklasfrahm/prometheus-speedtest-exporter).
 metrics:
   enabled: true
   scrapeInterval: 60m

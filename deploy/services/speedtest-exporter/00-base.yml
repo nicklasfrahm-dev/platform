@@ -35,4 +35,4 @@ autoscaling:
 metrics:
   enabled: true
   scrapeInterval: 60m
-  scrapeTimeout: 60s
+  scrapeTimeout: 120s

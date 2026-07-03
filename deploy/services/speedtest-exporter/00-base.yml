@@ -1,7 +1,7 @@
 # Image configuration - override default image
 image:
   repository: "ghcr.io/nicklasfrahm/prometheus-speedtest-exporter"
-  tag: "v1.0.1"
+  tag: "v1.1.1"
 
 # Service configuration - override default port
 service:
@@ -17,22 +17,22 @@ resources:
 probes:
   liveness:
     port: 9516
-    path: /healthz
+    path: /livez
   readiness:
     port: 9516
-    path: /healthz
+    path: /readyz
   startup:
     port: 9516
-    path: /healthz
+    path: /readyz
 
 # Disable autoscaling for Prometheus exporter
 autoscaling:
   enabled: false
   minReplicas: 1
 
-# Each scrape runs an actual speedtest, so use a long interval/timeout
+# /metrics always serves from cache, so scrapes only need to cover the
+# HTTP round trip, not a full speedtest
 # (see https://github.com/nicklasfrahm/prometheus-speedtest-exporter).
 metrics:
   enabled: true
-  scrapeInterval: 60m
-  scrapeTimeout: 120s
+  scrapeInterval: 1m

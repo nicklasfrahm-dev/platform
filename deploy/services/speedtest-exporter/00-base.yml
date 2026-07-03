@@ -24,6 +24,9 @@ probes:
   startup:
     port: 9516
     path: /readyz
+    # Allow up to 5m for the container to become ready.
+    periodSeconds: 10
+    failureThreshold: 30
 
 # Disable autoscaling for Prometheus exporter
 autoscaling:

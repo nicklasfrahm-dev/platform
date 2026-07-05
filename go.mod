@@ -3,7 +3,7 @@ module github.com/nicklasfrahm-dev/platform
 go 1.26.0
 
 require (
-	github.com/guptarohit/asciigraph v0.9.0
+	github.com/guptarohit/asciigraph v0.10.0
 	github.com/nicklasfrahm-dev/appkit v0.2.2
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/zap v1.28.0

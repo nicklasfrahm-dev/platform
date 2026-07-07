@@ -1,2 +1,3 @@
-chart: monitoring-client
-tag: 0.1.1
+chart:
+  name: monitoring-client
+  tag: 0.1.1

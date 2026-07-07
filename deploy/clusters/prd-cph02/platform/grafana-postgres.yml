@@ -1,2 +1,3 @@
-chart: cnpg-cluster
-tag: 0.1.0
+chart:
+  name: cnpg-cluster
+  tag: 0.1.0

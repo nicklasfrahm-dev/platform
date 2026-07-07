@@ -1,2 +1,3 @@
-chart: authz
-tag: 1.0.0
+chart:
+  name: authz
+  tag: 1.0.0

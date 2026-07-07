@@ -1,2 +1,3 @@
-chart: cilium
-tag: 1.0.2
+chart:
+  name: cilium
+  tag: 1.0.2

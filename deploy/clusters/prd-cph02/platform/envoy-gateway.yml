@@ -1,2 +1,3 @@
-chart: envoy-gateway
-tag: 0.1.1
+chart:
+  name: envoy-gateway
+  tag: 0.1.1

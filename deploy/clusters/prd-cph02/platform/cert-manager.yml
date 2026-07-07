@@ -1,2 +1,3 @@
-chart: cert-manager
-tag: 1.0.0
+chart:
+  name: cert-manager
+  tag: 1.0.0

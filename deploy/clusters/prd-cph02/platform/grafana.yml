@@ -1,2 +1,3 @@
-chart: grafana
-tag: 0.2.3
+chart:
+  name: grafana
+  tag: 0.2.3

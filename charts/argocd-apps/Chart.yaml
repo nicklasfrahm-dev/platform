@@ -3,5 +3,5 @@ type: application
 name: argocd-apps
 description: Configure ArgoCD ApplicationSets for multi-tenant clusters.
 icon: https://artifacthub.io/image/e16221f4-a3b1-49f6-9b65-cb4dbf30ed83
-version: 3.0.0
-appVersion: "3.0.0"
+version: 3.1.0
+appVersion: "3.1.0"

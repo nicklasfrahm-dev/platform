@@ -34,8 +34,8 @@ spec:
         namespace: '{{ $tenantName }}'
       sources:
         - repoURL: {{ $.Values.chart.repository | quote }}
-          chart: '{{`{{ .chart }}`}}'
-          targetRevision: '{{`{{ .tag }}`}}'
+          chart: '{{`{{ if kindIs "map" .chart }}{{ .chart.name }}{{ else }}{{ .chart }}{{ end }}`}}'
+          targetRevision: '{{`{{ if kindIs "map" .chart }}{{ .chart.tag }}{{ else }}{{ .tag }}{{ end }}`}}'
           helm:
             releaseName: '{{`{{ .values.release }}`}}'
             ignoreMissingValueFiles: true

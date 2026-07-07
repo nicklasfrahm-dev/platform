@@ -34,8 +34,8 @@ spec:
         namespace: '{{ $tenantName }}'
       sources:
         - repoURL: {{ $.Values.chart.repository | quote }}
-          chart: '{{`{{ if kindIs "map" .chart }}{{ .chart.name }}{{ else }}{{ .chart }}{{ end }}`}}'
-          targetRevision: '{{`{{ if kindIs "map" .chart }}{{ .chart.tag }}{{ else }}{{ .tag }}{{ end }}`}}'
+          chart: '{{`{{ .chart.name }}`}}'
+          targetRevision: '{{`{{ .chart.tag }}`}}'
           helm:
             releaseName: '{{`{{ .values.release }}`}}'
             ignoreMissingValueFiles: true
@@ -51,6 +51,9 @@ spec:
                 location: {{ $location | quote }}
                 tenant: {{ $tenantName | quote }}
                 domain: {{ $.Values.domain | quote }}
+              {{`{{- with omit . "path" "values" }}`}}
+              {{`{{ toYaml . }}`}}
+              {{`{{- end }}`}}
         - repoURL: {{ $.Values.config.repository | quote }}
           targetRevision: main
           ref: values

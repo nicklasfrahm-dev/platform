@@ -44,6 +44,7 @@ spec:
               - '$values/deploy/services/{{`{{ .values.release }}`}}/10-env-{{ $environment }}.yml'
               - '$values/deploy/services/{{`{{ .values.release }}`}}/20-cluster-{{ $cluster }}.yml'
               - '$values/deploy/services/{{`{{ .values.release }}`}}/30-tenant-{{ $tenantName }}.yml'
+              - '$values/deploy/clusters/{{ $cluster }}/{{ $tenantName }}/{{`{{ .values.release }}`}}.yml'
             values: |
               platform:
                 cluster: {{ $cluster | quote }}
@@ -51,9 +52,6 @@ spec:
                 location: {{ $location | quote }}
                 tenant: {{ $tenantName | quote }}
                 domain: {{ $.Values.domain | quote }}
-              {{`{{- with omit . "path" "values" }}`}}
-              {{`{{ toYaml . }}`}}
-              {{`{{- end }}`}}
         - repoURL: {{ $.Values.config.repository | quote }}
           targetRevision: main
           ref: values

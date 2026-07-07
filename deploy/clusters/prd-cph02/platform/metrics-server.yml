@@ -1,2 +1,3 @@
-chart: metrics-server
-tag: 1.0.0
+chart:
+  name: metrics-server
+  tag: 1.0.0

@@ -1,2 +1,3 @@
-chart: rook-ceph-cluster
-tag: 0.3.18
+chart:
+  name: rook-ceph-cluster
+  tag: 0.3.18

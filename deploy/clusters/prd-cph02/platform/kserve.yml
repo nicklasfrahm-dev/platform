@@ -1,2 +1,3 @@
-chart: kserve
-tag: 1.0.2
+chart:
+  name: kserve
+  tag: 1.0.2

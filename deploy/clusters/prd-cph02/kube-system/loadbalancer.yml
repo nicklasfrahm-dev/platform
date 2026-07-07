@@ -1,2 +1,3 @@
-chart: bgp-loadbalancing
-tag: 0.1.1
+chart:
+  name: bgp-loadbalancing
+  tag: 0.1.1

@@ -1,2 +1,3 @@
-chart: rook-ceph
-tag: 0.2.1
+chart:
+  name: rook-ceph
+  tag: 0.2.1

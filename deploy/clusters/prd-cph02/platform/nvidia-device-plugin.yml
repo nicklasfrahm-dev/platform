@@ -1,2 +1,3 @@
-chart: nvidia-device-plugin
-tag: 1.0.0
+chart:
+  name: nvidia-device-plugin
+  tag: 1.0.0

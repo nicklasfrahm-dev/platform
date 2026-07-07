@@ -34,8 +34,8 @@ spec:
         namespace: '{{ $tenantName }}'
       sources:
         - repoURL: {{ $.Values.chart.repository | quote }}
-          chart: '{{`{{ if kindIs "map" .chart }}{{ .chart.name }}{{ else }}{{ .chart }}{{ end }}`}}'
-          targetRevision: '{{`{{ if kindIs "map" .chart }}{{ .chart.tag }}{{ else }}{{ .tag }}{{ end }}`}}'
+          chart: '{{`{{ .chart.name }}`}}'
+          targetRevision: '{{`{{ .chart.tag }}`}}'
           helm:
             releaseName: '{{`{{ .values.release }}`}}'
             ignoreMissingValueFiles: true
@@ -44,6 +44,7 @@ spec:
               - '$values/deploy/services/{{`{{ .values.release }}`}}/10-env-{{ $environment }}.yml'
               - '$values/deploy/services/{{`{{ .values.release }}`}}/20-cluster-{{ $cluster }}.yml'
               - '$values/deploy/services/{{`{{ .values.release }}`}}/30-tenant-{{ $tenantName }}.yml'
+              - '$values/deploy/clusters/{{ $cluster }}/{{ $tenantName }}/{{`{{ .values.release }}`}}.yml'
             values: |
               platform:
                 cluster: {{ $cluster | quote }}

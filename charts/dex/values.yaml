@@ -46,6 +46,12 @@ dex:
         allowOfflineAccess: true
         redirectURIs:
           - "https://ceph.cph02.nicklasfrahm.dev/oauth2/callback"
+      - id: kaether
+        name: "kaether"
+        public: true
+        redirectURIs:
+          - "http://localhost:8080/app"
+          - "https://console.nicklasfrahm.dev/app"
   envVars:
     # The GitHub OIDC secrets are manually created using:
     # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>

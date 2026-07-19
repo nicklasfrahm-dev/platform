@@ -40,8 +40,8 @@ dex:
         allowOfflineAccess: true
         redirectURIs:
           - "https://ceph.cph02.nicklasfrahm.dev/oauth2/callback"
-      - id: kaether
-        name: "kaether"
+      - id: kontinuum
+        name: "kontinuum"
         public: true
         redirectURIs:
           - "http://localhost:8080/app"

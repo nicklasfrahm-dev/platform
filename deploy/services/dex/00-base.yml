@@ -1,11 +1,6 @@
 dex:
   config:
-    logger:
-      level: "warn"
-      format: "json"
     issuer: "https://auth.nicklasfrahm.dev"
-    storage:
-      type: memory
     connectors:
       - type: github
         id: github

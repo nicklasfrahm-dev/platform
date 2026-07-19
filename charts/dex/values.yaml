@@ -1,5 +1,11 @@
 dex:
   enabled: true
+  config:
+    logger:
+      level: "warn"
+      format: "json"
+    storage:
+      type: memory
 
 httpRoute:
   enabled: false

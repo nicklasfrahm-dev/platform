@@ -1,0 +1,70 @@
+dex:
+  config:
+    issuer: "https://auth.nicklasfrahm.dev"
+    connectors:
+      - type: github
+        id: github
+        name: GitHub
+        config:
+          clientID: $GITHUB_CLIENT_ID
+          clientSecret: $GITHUB_CLIENT_SECRET
+          redirectURI: "https://auth.nicklasfrahm.dev/callback"
+          orgs:
+            - name: nicklasfrahm-dev
+    staticClients:
+      - id: kubernetes
+        name: "Kubernetes"
+        public: true
+        redirectURIs:
+          - "http://localhost:8000"
+          - "http://localhost:18000"
+      - id: argocd
+        name: "ArgoCD"
+        public: true
+        redirectURIs:
+          - "https://argocd.cph02.nicklasfrahm.dev/auth/callback"
+          - "http://localhost:8000"
+      - id: grafana
+        name: "Grafana"
+        public: true
+        redirectURIs:
+          - "https://grafana.nicklasfrahm.dev/login/generic_oauth"
+      - id: skatd
+        name: "skatd"
+        public: true
+        redirectURIs:
+          - "http://localhost:8080/ui/callback"
+      - id: ceph-dashboard
+        name: "Ceph Dashboard"
+        public: true
+        allowOfflineAccess: true
+        redirectURIs:
+          - "https://ceph.cph02.nicklasfrahm.dev/oauth2/callback"
+      - id: kaether
+        name: "kaether"
+        public: true
+        redirectURIs:
+          - "http://localhost:8080/app"
+          - "https://console.nicklasfrahm.dev/app"
+          - "http://localhost:8000"
+          - "http://localhost:18000"
+  envVars:
+    # The GitHub OIDC secrets are manually created using:
+    # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>
+    - name: GITHUB_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: dex-github
+          key: GITHUB_CLIENT_ID
+    - name: GITHUB_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: dex-github
+          key: GITHUB_CLIENT_SECRET
+
+httpRoute:
+  enabled: true
+  gateway:
+    namespace: platform
+    name: public-web-gateway
+  hostname: "auth.nicklasfrahm.dev"

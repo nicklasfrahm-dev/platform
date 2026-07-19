@@ -46,6 +46,8 @@ dex:
         redirectURIs:
           - "http://localhost:8080/app"
           - "https://console.nicklasfrahm.dev/app"
+          - "http://localhost:8000"
+          - "http://localhost:18000"
   envVars:
     # The GitHub OIDC secrets are manually created using:
     # kubectl create secret generic dex-github --from-literal=GITHUB_CLIENT_ID=<client-id> --from-literal=GITHUB_CLIENT_SECRET=<client-secret>

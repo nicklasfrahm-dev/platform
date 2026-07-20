@@ -1,13 +1,86 @@
 name: OpenTofu
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/infra/**"
+      - "deploy/services/**"
+      - "modules/cloudrun-service/**"
+      - ".github/workflows/opentofu.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "deploy/infra/**"
+      - "deploy/services/**"
+      - "modules/cloudrun-service/**"
+      - ".github/workflows/opentofu.yaml"
 
 jobs:
-  plan:
-    name: Plan
+  detect-changes:
+    name: Detect changed roots
     runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/main'
+    outputs:
+      roots: ${{ steps.detect.outputs.roots }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed OpenTofu roots
+        id: detect
+        run: |
+          set -eou pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.event.pull_request.base.ref }}"
+            diff_against="origin/${{ github.event.pull_request.base.ref }}"
+          else
+            diff_against="HEAD~1"
+          fi
+
+          changed=$(git diff --name-only "$diff_against")
+
+          roots=()
+          while IFS= read -r name; do
+            [[ -n "$name" ]] && roots+=("deploy/infra/$name")
+          done < <(grep -oP '^deploy/infra/\K[^/]+' <<<"$changed" | sort -u)
+
+          # deploy/services/** and modules/cloudrun-service/** are shared
+          # inputs: every deploy/infra/<root> discovers its own services
+          # dynamically, so a change to either can affect any root without
+          # touching deploy/infra itself. There's no cheap way to tell which
+          # root(s) are actually affected without running the module's own
+          # discovery, so treat all of them as changed.
+          if grep -qE '^(deploy/services/|modules/cloudrun-service/)' <<<"$changed"; then
+            while IFS= read -r dir; do
+              roots+=("$dir")
+            done < <(find deploy/infra -mindepth 1 -maxdepth 1 -type d | sort)
+          fi
+
+          if [[ ${#roots[@]} -gt 0 ]]; then
+            mapfile -t roots < <(printf '%s\n' "${roots[@]}" | sort -u)
+          fi
+
+          if [[ ${#roots[@]} -eq 0 ]]; then
+            json='[]'
+          else
+            json=$(printf '%s\n' "${roots[@]}" | jq -R . | jq -sc .)
+          fi
+
+          echo "roots=$json" >>"$GITHUB_OUTPUT"
+
+  plan:
+    name: Plan (${{ matrix.root }})
+    needs: detect-changes
+    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.roots != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        root: ${{ fromJson(needs.detect-changes.outputs.roots) }}
     permissions:
       id-token: write
       pull-requests: write
@@ -26,7 +99,7 @@ jobs:
         uses: opentofu/setup-opentofu@v2
 
       - name: Plan OpenTofu changes
-        run: make opentofu-plan
+        run: make opentofu-plan OPENTOFU_ROOT_MODULE=${{ matrix.root }}
 
       - name: Dump OpenTofu plan
         id: opentofu
@@ -35,11 +108,11 @@ jobs:
 
           {
             echo 'plan<<EOF'
-            cat tofu.log
+            cat ${{ matrix.root }}/tofu.log
             echo EOF
           } >>"$GITHUB_OUTPUT"
 
-          echo "changes=$(make opentofu-count)" >>"$GITHUB_OUTPUT"
+          echo "changes=$(make opentofu-count OPENTOFU_ROOT_MODULE=${{ matrix.root }})" >>"$GITHUB_OUTPUT"
 
       - name: Find plan comment
         uses: peter-evans/find-comment@v4
@@ -47,7 +120,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: "github-actions[bot]"
-          body-includes: "OpenTofu plan"
+          body-includes: "OpenTofu plan: `${{ matrix.root }}`"
 
       - name: Publish plan
         uses: peter-evans/create-or-update-comment@v5
@@ -55,13 +128,13 @@ jobs:
           comment-id: ${{ steps.find-opentofu.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## 🏗️ [OpenTofu plan](https://opentofu.org)
+            ## 🏗️ [OpenTofu plan: `${{ matrix.root }}`](https://opentofu.org)
 
             Changes were detected in the OpenTofu plan. Please review the changes below.
 
             <details>
             <summary>
-            <code>make opentofu-plan</code>
+            <code>make opentofu-plan OPENTOFU_ROOT_MODULE=${{ matrix.root }}</code>
             </summary>
 
             ```tf
@@ -78,9 +151,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   apply:
-    name: Apply
+    name: Apply (${{ matrix.root }})
+    needs: detect-changes
+    if: github.event_name == 'push' && needs.detect-changes.outputs.roots != '[]'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        root: ${{ fromJson(needs.detect-changes.outputs.roots) }}
     permissions:
       id-token: write
     steps:
@@ -98,4 +175,4 @@ jobs:
         uses: opentofu/setup-opentofu@v2
 
       - name: Apply OpenTofu changes
-        run: make opentofu-apply
+        run: make opentofu-apply OPENTOFU_ROOT_MODULE=${{ matrix.root }}

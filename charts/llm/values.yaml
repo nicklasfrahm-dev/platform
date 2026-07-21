@@ -103,6 +103,8 @@ route:
   gateway:
     name: public-web-gateway
     namespace: platform
+  timeouts:
+    request: 30m
 
 auth:
   enabled: true

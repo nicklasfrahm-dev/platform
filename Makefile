@@ -19,7 +19,7 @@ opentofu-plan: $(OPENTOFU_PLAN) ## Plan the infrastructure changes.
 
 .PHONY: opentofu-count
 opentofu-count: opentofu-plan ## Count the number of changes in the plan.
-	@tofu -chdir=$(OPENTOFU_ROOT_MODULE) show -json opentofu.tfplan | jq -r '.resource_changes[].change.actions | join(",")' | grep -Ecv '^no-op$$' || true
+	@tofu -chdir=$(OPENTOFU_ROOT_MODULE) show -json opentofu.tfplan | jq -r '(.resource_changes // [])[].change.actions | join(",")' | grep -Ecv '^no-op$$' || true
 
 .PHONY: opentofu-apply
 opentofu-apply: ## Apply the infrastructure changes.

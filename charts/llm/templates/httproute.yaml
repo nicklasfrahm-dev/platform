@@ -14,6 +14,8 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      timeouts:
+        request: {{ .Values.route.timeouts.request | quote }}
       backendRefs:
         - name: {{ .Release.Name }}-predictor
           port: 80

@@ -4,23 +4,34 @@
 
 OPENTOFU_ROOT_MODULE	?= deploy/opentofu
 OPENTOFU_PLAN					?= $(OPENTOFU_ROOT_MODULE)/opentofu.tfplan
+OPENTOFU_LOG					?= $(OPENTOFU_ROOT_MODULE)/tofu.log
 OPENTOFU_ROOT_SOURCES	?= $(shell find $(OPENTOFU_ROOT_MODULE) -maxdepth 1 -type f -name '*.tf')
 
+# The default SHELL (dash) has no `pipefail`, so `tofu plan | tee log`
+# would report success from `tee` even when `tofu plan` itself fails. Scope
+# a bash+pipefail shell to just this target so a failing plan actually
+# fails the build instead of silently producing an empty/errored plan file.
+$(OPENTOFU_PLAN): SHELL := bash
+$(OPENTOFU_PLAN): .SHELLFLAGS := -eu -o pipefail -c
+
+# OPENTOFU_ROOT_MODULE is overridable (e.g. `make opentofu-plan
+# OPENTOFU_ROOT_MODULE=deploy/infra/prd-cloudrun-services`) so the same
+# targets drive every root module under deploy/, not just deploy/opentofu.
 $(OPENTOFU_PLAN): $(OPENTOFU_ROOT_SOURCES)
-	tofu -chdir=deploy/opentofu init
-	tofu -chdir=deploy/opentofu plan -out=opentofu.tfplan | tee tofu.log
-	@sed -i 's/\x1b\[[0-9;]*m//g' tofu.log
+	tofu -chdir=$(OPENTOFU_ROOT_MODULE) init
+	tofu -chdir=$(OPENTOFU_ROOT_MODULE) plan -out=opentofu.tfplan | tee $(OPENTOFU_LOG)
+	@sed -i 's/\x1b\[[0-9;]*m//g' $(OPENTOFU_LOG)
 
 opentofu-plan: $(OPENTOFU_PLAN) ## Plan the infrastructure changes.
 
 .PHONY: opentofu-count
 opentofu-count: opentofu-plan ## Count the number of changes in the plan.
-	@tofu -chdir=deploy/opentofu show -json opentofu.tfplan | jq -r '.resource_changes[].change.actions | join(",")' | grep -Ecv '^no-op$$' || true
+	@tofu -chdir=$(OPENTOFU_ROOT_MODULE) show -json opentofu.tfplan | jq -r '(.resource_changes // [])[].change.actions | join(",")' | grep -Ecv '^no-op$$' || true
 
 .PHONY: opentofu-apply
 opentofu-apply: ## Apply the infrastructure changes.
-	tofu -chdir=deploy/opentofu init
-	tofu -chdir=deploy/opentofu apply -auto-approve
+	tofu -chdir=$(OPENTOFU_ROOT_MODULE) init
+	tofu -chdir=$(OPENTOFU_ROOT_MODULE) apply -auto-approve
 
 ################
 ### Monorepo ###

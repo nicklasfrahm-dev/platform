@@ -3,4 +3,4 @@ type: application
 name: service
 description: A Helm chart for deploying a generic service in a Kubernetes cluster.
 icon: https://cdn-icons-png.flaticon.com/512/9402/9402265.png
-version: 0.3.1
+version: 0.3.2

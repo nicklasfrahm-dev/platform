@@ -1,11 +1,17 @@
-# These will automatically be injected by the `argocd-apps` chart.
-# No need to set them manually.
+# cluster, environment, location, tenant and domain are automatically
+# injected by the `argocd-apps` chart. No need to set them manually.
 platform:
   cluster: "dev-lab01"
   environment: "dev"
   location: "lab01"
   tenant: "demo"
   domain: "nicklasfrahm.dev"
+  # target selects which infrastructure deploys this service. "Kubernetes"
+  # (the default) is deployed by ArgoCD via this chart. Set to
+  # "GoogleCloudRunService" to instead have modules/cloudrun-service deploy
+  # it to Cloud Run. Unlike the rest of platform.*, this must be set by hand
+  # in the service's own 00-base.yml.
+  target: "Kubernetes"
 
 image:
   repository: "ghcr.io/nicklasfrahm-dev/axon"

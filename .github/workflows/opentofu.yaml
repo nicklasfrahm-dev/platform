@@ -114,6 +114,9 @@ jobs:
 
           echo "changes=$(make opentofu-count OPENTOFU_ROOT_MODULE=${{ matrix.root }})" >>"$GITHUB_OUTPUT"
 
+          summary=$(grep -E '^(Plan:|No changes\.)' ${{ matrix.root }}/tofu.log | tail -1)
+          echo "summary=$summary" >>"$GITHUB_OUTPUT"
+
       - name: Find plan comment
         uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4
         id: find-opentofu
@@ -134,7 +137,7 @@ jobs:
 
             <details>
             <summary>
-            <code>make opentofu-plan OPENTOFU_ROOT_MODULE=${{ matrix.root }}</code>
+            <code>tofu -chdir=${{ matrix.root }} plan</code> → ${{ steps.opentofu.outputs.summary }}
             </summary>
 
             ```tf

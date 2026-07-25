@@ -2,12 +2,17 @@
 # project's default Compute Engine service account, so each service's
 # permissions (e.g. the Secret Manager grants below) stay scoped to what
 # that service actually needs.
+#
+# account_id includes environment and location, not just the service name:
+# the same tenant project can host the same service name across multiple
+# clusters (e.g. more than one dev instance), and google_service_account IDs
+# must be unique per project.
 resource "google_service_account" "this" {
   for_each = local.services
 
   project      = each.value.project
-  account_id   = "svc-${each.value.name}"
-  display_name = "Cloud Run runtime identity for ${each.value.name}"
+  account_id   = "svc-${each.value.name}-${each.value.values.platform.environment}-${each.value.values.platform.location}"
+  display_name = "Cloud Run runtime identity for ${each.value.name} (${each.value.values.platform.environment}-${each.value.values.platform.location})"
 }
 
 # Cloud Run V2 requires the deploying principal to be able to act as the

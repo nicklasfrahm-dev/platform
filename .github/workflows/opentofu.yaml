@@ -137,7 +137,7 @@ jobs:
 
             <details>
             <summary>
-            <code>tofu -chdir=${{ matrix.root }} plan</code> → ${{ steps.opentofu.outputs.summary }}
+            <code>tofu -chdir=${{ matrix.root }} plan → ${{ steps.opentofu.outputs.summary }}</code>
             </summary>
 
             ```tf

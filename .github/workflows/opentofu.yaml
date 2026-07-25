@@ -13,17 +13,17 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.GOOGLE_PROJECT }}
           service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v2
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
 
       - name: Plan OpenTofu changes
         run: make opentofu-plan
@@ -42,7 +42,7 @@ jobs:
           echo "changes=$(make opentofu-count)" >>"$GITHUB_OUTPUT"
 
       - name: Find plan comment
-        uses: peter-evans/find-comment@v4
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4
         id: find-opentofu
         with:
           issue-number: ${{ github.event.pull_request.number }}
@@ -50,7 +50,7 @@ jobs:
           body-includes: "OpenTofu plan"
 
       - name: Publish plan
-        uses: peter-evans/create-or-update-comment@v5
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
         with:
           comment-id: ${{ steps.find-opentofu.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
@@ -85,17 +85,17 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.GOOGLE_PROJECT }}
           service_account: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v2
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
 
       - name: Apply OpenTofu changes
         run: make opentofu-apply

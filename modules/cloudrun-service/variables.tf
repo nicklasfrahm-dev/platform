@@ -38,7 +38,7 @@ variable "domain" {
   default     = ""
 }
 
-variable "deployer" {
+variable "DEPLOYER_SERVICE_ACCOUNT" {
   description = <<-EOT
     Email of the principal running `tofu apply` (e.g. a CI service
     account). Cloud Run V2 requires whoever deploys a service to be able to

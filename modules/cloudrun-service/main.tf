@@ -12,13 +12,13 @@ resource "google_service_account" "this" {
 
 # Cloud Run V2 requires the deploying principal to be able to act as the
 # identity it assigns to the service, which isn't implied by any role
-# var.deployer holds on the project itself.
+# var.DEPLOYER_SERVICE_ACCOUNT holds on the project itself.
 resource "google_service_account_iam_member" "deployer_can_act_as" {
   for_each = local.services
 
   service_account_id = google_service_account.this[each.key].name
-  role                = "roles/iam.serviceAccountUser"
-  member              = "serviceAccount:${var.deployer}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.DEPLOYER_SERVICE_ACCOUNT}"
 }
 
 # Grants each service's runtime identity access to read the Secret Manager

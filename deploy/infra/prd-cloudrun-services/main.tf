@@ -8,11 +8,11 @@ locals {
 module "cloudrun_service" {
   source = "../../../modules/cloudrun-service"
 
-  cluster_glob = "prd-*"
-  clusters_dir = "${local.root}/deploy/clusters"
-  values_dir   = "${local.root}/deploy/services"
-  domain       = local.global_config.dns.zone
-  deployer     = var.deployer
+  cluster_glob             = "prd-*"
+  clusters_dir             = "${local.root}/deploy/clusters"
+  values_dir               = "${local.root}/deploy/services"
+  domain                   = local.global_config.dns.zone
+  DEPLOYER_SERVICE_ACCOUNT = var.DEPLOYER_SERVICE_ACCOUNT
 }
 
 output "uris" {

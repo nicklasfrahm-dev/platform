@@ -1,6 +1,6 @@
 # Deploy
 
-This GitHub Action automates deployment via GitOps by updating the image tag in the configuration repository and pushing the changes.
+This GitHub Action automates deployment via GitOps by updating the image tag in the configuration repository and pushing the changes. It also creates a [GitHub deployment](https://docs.github.com/en/rest/deployments/deployments) on the calling repository for the `dev`, `stg`, or `prd` environment and reports its final status (`success` or `failure`), so the deployment shows up under the calling repository's **Environments** and **Deployments** views. If the workflow's token lacks the `deployments: write` permission, this tracking is skipped with a warning instead of failing the action.
 
 ## Inputs
 
@@ -20,6 +20,9 @@ on:
   push:
     tags:
       - "*"
+
+permissions:
+  deployments: write
 
 jobs:
   deploy:

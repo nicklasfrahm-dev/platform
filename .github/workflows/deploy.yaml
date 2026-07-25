@@ -16,6 +16,9 @@ on:
         required: true
         type: string
 
+permissions:
+  deployments: write
+
 jobs:
   update-image-tag:
     name: Update image tag

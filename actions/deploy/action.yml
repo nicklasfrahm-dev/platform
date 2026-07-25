@@ -60,6 +60,39 @@ runs:
     - name: Install yq
       uses: dcarbone/install-yq-action@4075b4dca348d74bd83f2bf82d30f25d7c54539b # v1.3.1
 
+    - name: Create GitHub deployment
+      id: create-deployment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        SERVICE: ${{ inputs.service }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        TAG: ${{ inputs.tag }}
+        REF: ${{ github.sha }}
+      run: |
+        set -uo pipefail
+
+        PAYLOAD=$(jq -n \
+          --arg ref "$REF" \
+          --arg environment "$ENVIRONMENT" \
+          --arg description "Deploy ${SERVICE} ${TAG} to ${ENVIRONMENT}" \
+          '{ref: $ref, environment: $environment, description: $description, auto_merge: false, required_contexts: []}')
+
+        if ! RESPONSE=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+          --method POST \
+          --input - <<<"$PAYLOAD" 2>&1); then
+          if echo "$RESPONSE" | grep -qE "\(HTTP (401|403|404)\)"; then
+            echo "::warning::Skipping GitHub deployment tracking: request failed with 401/403/404, likely missing the 'deployments: write' permission."
+            echo "id=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "$RESPONSE" >&2
+          exit 1
+        fi
+
+        echo "id=$(jq -r '.id' <<<"$RESPONSE")" >> "$GITHUB_OUTPUT"
+
     - name: Update image tag in environment file
       shell: bash
       run: |
@@ -76,6 +109,7 @@ runs:
         IMAGE_TAG: ${{ inputs.tag }}
 
     - name: Commit and push changes
+      id: commit-and-push
       shell: bash
       run: |
         set -eou pipefail
@@ -88,3 +122,21 @@ runs:
         if git commit -m "chore(deploy): deploy ${{ inputs.service }} ${{ inputs.tag }} to ${{ inputs.environment }}"; then
           git push origin main
         fi
+
+    - name: Update GitHub deployment status
+      if: ${{ !cancelled() && steps.create-deployment.outputs.id != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        DEPLOYMENT_ID: ${{ steps.create-deployment.outputs.id }}
+        STATE: ${{ steps.commit-and-push.outcome == 'success' && 'success' || 'failure' }}
+        SERVICE: ${{ inputs.service }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -eou pipefail
+
+        gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses" \
+          --method POST \
+          -f "state=${STATE}" \
+          -f "description=Deploy ${SERVICE} ${TAG} to ${ENVIRONMENT}"

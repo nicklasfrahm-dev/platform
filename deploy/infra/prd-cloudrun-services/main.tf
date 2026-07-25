@@ -12,6 +12,7 @@ module "cloudrun_service" {
   clusters_dir = "${local.root}/deploy/clusters"
   values_dir   = "${local.root}/deploy/services"
   domain       = local.global_config.dns.zone
+  deployer     = var.deployer
 }
 
 output "uris" {

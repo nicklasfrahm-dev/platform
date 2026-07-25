@@ -27,7 +27,6 @@ autoscaling:
 
 expose:
   enabled: true
-  host: "console.nicklasfrahm.dev"
 
 env:
   fromLiterals:

@@ -83,7 +83,6 @@ jobs:
         root: ${{ fromJson(needs.detect-changes.outputs.roots) }}
     permissions:
       id-token: write
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -101,21 +100,85 @@ jobs:
       - name: Plan OpenTofu changes
         run: make opentofu-plan OPENTOFU_ROOT_MODULE=${{ matrix.root }}
 
-      - name: Dump OpenTofu plan
+      - name: Render plan fragment
         id: opentofu
         run: |
           set -eou pipefail
 
-          {
-            echo 'plan<<EOF'
-            cat ${{ matrix.root }}/tofu.log
-            echo EOF
-          } >>"$GITHUB_OUTPUT"
+          changes=$(make opentofu-count OPENTOFU_ROOT_MODULE=${{ matrix.root }})
+          echo "changes=$changes" >>"$GITHUB_OUTPUT"
 
-          echo "changes=$(make opentofu-count OPENTOFU_ROOT_MODULE=${{ matrix.root }})" >>"$GITHUB_OUTPUT"
+          # A root with no diff contributes nothing to the combined comment.
+          if [[ "$changes" == "0" ]]; then
+            exit 0
+          fi
+
+          slug=$(tr '/' '-' <<<"${{ matrix.root }}")
+          echo "slug=$slug" >>"$GITHUB_OUTPUT"
 
           summary=$(grep -E '^(Plan:|No changes\.)' ${{ matrix.root }}/tofu.log | tail -1)
-          echo "summary=$summary" >>"$GITHUB_OUTPUT"
+
+          {
+            echo '<details>'
+            echo '<summary>'
+            echo "<code>tofu -chdir=${{ matrix.root }} plan > $summary</code>"
+            echo '</summary>'
+            echo
+            echo '```tf'
+            cat ${{ matrix.root }}/tofu.log
+            echo '```'
+            echo
+            echo '</details>'
+          } >"plan-$slug.md"
+
+      - name: Upload plan fragment
+        if: steps.opentofu.outputs.changes != '0'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opentofu-plan-${{ steps.opentofu.outputs.slug }}
+          path: plan-${{ steps.opentofu.outputs.slug }}.md
+          retention-days: 1
+
+  comment:
+    name: Publish OpenTofu plan comment
+    needs: [detect-changes, plan]
+    if: always() && github.event_name == 'pull_request' && needs.detect-changes.outputs.roots != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # No matching artifacts (every root's plan was a no-op) leaves this
+      # directory empty rather than failing the step.
+      - name: Download plan fragments
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: opentofu-plan-*
+          path: fragments
+          merge-multiple: true
+
+      - name: Build comment body
+        id: build
+        run: |
+          set -eou pipefail
+
+          shopt -s nullglob
+          fragments=(fragments/*.md)
+
+          if [[ ${#fragments[@]} -eq 0 ]]; then
+            echo "has-changes=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo 'body<<EOF'
+            echo '## 🏗️ [OpenTofu plan](https://opentofu.org)'
+            echo
+            echo 'Changes were detected in the OpenTofu plan. Please review the changes below.'
+            echo
+            cat "${fragments[@]}"
+            echo 'EOF'
+          } >>"$GITHUB_OUTPUT"
+          echo "has-changes=true" >>"$GITHUB_OUTPUT"
 
       - name: Find plan comment
         uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4
@@ -123,32 +186,19 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: "github-actions[bot]"
-          body-includes: "OpenTofu plan: `${{ matrix.root }}`"
+          body-includes: "## 🏗️ [OpenTofu plan]"
 
       - name: Publish plan
+        if: steps.build.outputs.has-changes == 'true'
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
         with:
           comment-id: ${{ steps.find-opentofu.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🏗️ [OpenTofu plan: `${{ matrix.root }}`](https://opentofu.org)
-
-            Changes were detected in the OpenTofu plan. Please review the changes below.
-
-            <details>
-            <summary>
-            <code>tofu -chdir=${{ matrix.root }} plan → ${{ steps.opentofu.outputs.summary }}</code>
-            </summary>
-
-            ```tf
-            ${{ steps.opentofu.outputs.plan }}
-            ```
-
-            </details>
+          body: ${{ steps.build.outputs.body }}
           edit-mode: replace
 
       - name: Delete plan comment
-        if: steps.opentofu.outputs.changes == '0' && steps.find-opentofu.outputs.comment-id != ''
+        if: steps.build.outputs.has-changes == 'false' && steps.find-opentofu.outputs.comment-id != ''
         run: gh api /repos/${{ github.repository }}/issues/comments/${{ steps.find-opentofu.outputs.comment-id }} -X DELETE
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

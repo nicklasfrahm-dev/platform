@@ -31,8 +31,6 @@ expose:
 env:
   fromLiterals:
     KONTINUUM_SERVER_ADDR: ":8080"
-    # Demo/smoke-test value only - no real Postgres instance backs this.
-    KONTINUUM_SERVER_STORAGE: "postgres://kontinuum:dummy@dummy-postgres.invalid:5432/kontinuum?sslmode=disable"
     # OIDC via Dex, public client "kontinuum" (no client secret, PKCE only;
     # see deploy/services/dex/00-base.yml's staticClients entry).
     KONTINUUM_OIDC_ISSUER_URL: "https://auth.nicklasfrahm.dev"

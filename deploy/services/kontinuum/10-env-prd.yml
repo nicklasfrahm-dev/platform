@@ -1,0 +1,7 @@
+expose:
+  host: "console.nicklasfrahm.dev"
+
+env:
+  fromSecrets:
+    KONTINUUM_SERVER_STORAGE:
+      PRD_KONTINUUM_SERVER_STORAGE: latest

@@ -1,0 +1,9 @@
+# prd-cbf01 has no real Kubernetes cluster behind it - it exists purely so
+# modules/cloudrun-service can discover this service (see
+# modules/cloudrun-service/variables.tf). This directory's name,
+# "nicklasfrahm", is used as the GCP project ID. chart is unused by Cloud
+# Run (only ArgoCD's ApplicationSet reads it), kept here for consistency
+# with every other release file's convention.
+chart:
+  name: service
+  tag: 0.3.2

@@ -81,8 +81,8 @@ runs:
         if ! RESPONSE=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" \
           --method POST \
           --input - <<<"$PAYLOAD" 2>&1); then
-          if echo "$RESPONSE" | grep -qi "Resource not accessible by integration"; then
-            echo "::warning::Skipping GitHub deployment tracking: token is missing the 'deployments: write' permission."
+          if echo "$RESPONSE" | grep -qE "\(HTTP (401|403|404)\)"; then
+            echo "::warning::Skipping GitHub deployment tracking: request failed with 401/403/404, likely missing the 'deployments: write' permission."
             echo "id=" >> "$GITHUB_OUTPUT"
             exit 0
           fi

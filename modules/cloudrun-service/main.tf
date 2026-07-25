@@ -1,3 +1,39 @@
+# A dedicated runtime identity per service, rather than falling back to the
+# project's default Compute Engine service account, so each service's
+# permissions (e.g. the Secret Manager grants below) stay scoped to what
+# that service actually needs.
+resource "google_service_account" "this" {
+  for_each = local.services
+
+  project      = each.value.project
+  account_id   = "svc-${each.value.name}"
+  display_name = "Cloud Run runtime identity for ${each.value.name}"
+}
+
+# Cloud Run V2 requires the deploying principal to be able to act as the
+# identity it assigns to the service, which isn't implied by any role
+# var.DEPLOYER_SERVICE_ACCOUNT holds on the project itself.
+resource "google_service_account_iam_member" "deployer_can_act_as" {
+  for_each = local.services
+
+  service_account_id = google_service_account.this[each.key].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.DEPLOYER_SERVICE_ACCOUNT}"
+}
+
+# Grants each service's runtime identity access to read the Secret Manager
+# secrets it references via env.fromSecrets. The secrets themselves are
+# created out of band (e.g. via the GCP console) - this only grants access
+# to ones that already exist.
+resource "google_secret_manager_secret_iam_member" "runtime_can_access" {
+  for_each = local.secret_grants
+
+  project   = each.value.project
+  secret_id = each.value.secret
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.this[each.value.service].email}"
+}
+
 resource "google_cloud_run_v2_service" "this" {
   for_each = local.services
 
@@ -6,7 +42,17 @@ resource "google_cloud_run_v2_service" "this" {
   location = each.value.region
   ingress  = "INGRESS_TRAFFIC_ALL"
 
+  # google_service_account.this[each.key].email is referenced below, but
+  # the grants that make that identity usable aren't - without these, the
+  # deploy can race ahead of the IAM propagation it depends on.
+  depends_on = [
+    google_service_account_iam_member.deployer_can_act_as,
+    google_secret_manager_secret_iam_member.runtime_can_access,
+  ]
+
   template {
+    service_account = google_service_account.this[each.key].email
+
     containers {
       image = "${each.value.values.image.repository}:${each.value.values.image.tag}"
 

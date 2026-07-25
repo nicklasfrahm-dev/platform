@@ -83,6 +83,12 @@ jobs:
         root: ${{ fromJson(needs.detect-changes.outputs.roots) }}
     permissions:
       id-token: write
+    env:
+      # Picked up by modules/cloudrun-service's `DEPLOYER_SERVICE_ACCOUNT`
+      # variable, so it can grant this same principal
+      # roles/iam.serviceAccountUser on every Cloud Run service's runtime
+      # identity.
+      TF_VAR_DEPLOYER_SERVICE_ACCOUNT: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -213,6 +219,8 @@ jobs:
         root: ${{ fromJson(needs.detect-changes.outputs.roots) }}
     permissions:
       id-token: write
+    env:
+      TF_VAR_DEPLOYER_SERVICE_ACCOUNT: ${{ vars.GOOGLE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

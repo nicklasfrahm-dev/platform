@@ -37,3 +37,14 @@ variable "domain" {
   type        = string
   default     = ""
 }
+
+variable "DEPLOYER_SERVICE_ACCOUNT" {
+  description = <<-EOT
+    Email of the principal running `tofu apply` (e.g. a CI service
+    account). Cloud Run V2 requires whoever deploys a service to be able to
+    act as the identity it runs as, so this is granted
+    roles/iam.serviceAccountUser on every service's dedicated runtime
+    identity (see google_service_account.this in main.tf).
+  EOT
+  type        = string
+}

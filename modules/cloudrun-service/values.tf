@@ -170,4 +170,18 @@ locals {
     for f, service in local.services :
     f => service if try(service.values.expose.enabled, false)
   }
+
+  # One IAM grant per (service, secret) pair referenced via env.fromSecrets,
+  # keyed so the same secret referenced by more than one env var on the same
+  # service is only granted once.
+  secret_grants = merge([
+    for f, service in local.services : {
+      for secret in distinct([for ref in values(service.values.env.fromSecrets) : keys(ref)[0]]) :
+      "${f}/${secret}" => {
+        service = f
+        project = service.project
+        secret  = secret
+      }
+    }
+  ]...)
 }

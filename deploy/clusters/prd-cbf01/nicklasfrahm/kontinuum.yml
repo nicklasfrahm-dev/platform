@@ -1,0 +1,6 @@
+# prd-cbf01 has no real Kubernetes cluster behind it - it exists purely so
+# modules/cloudrun-service can discover this service (see
+# modules/cloudrun-service/variables.tf). This directory's name,
+# "nicklasfrahm", is used as the GCP project ID. All values live in
+# deploy/services/kontinuum/00-base.yml; nothing to override here.
+{}

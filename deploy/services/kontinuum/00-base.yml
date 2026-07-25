@@ -1,0 +1,44 @@
+# cluster, environment, location, tenant and domain are automatically
+# injected by modules/cloudrun-service. No need to set them manually.
+platform:
+  # kontinuum runs on Cloud Run instead of Kubernetes; see
+  # deploy/clusters/prd-cbf01/nicklasfrahm/kontinuum.yml, the virtual
+  # cluster this service is discovered under.
+  target: "GoogleCloudRunService"
+
+image:
+  repository: "ghcr.io/nicklasfrahm-dev/kontinuum"
+  tag: "v0.1.3"
+
+service:
+  containerPort: 8080
+
+resources:
+  cpu: "1"
+  memory: "512Mi"
+
+autoscaling:
+  minReplicas: 0
+  maxReplicas: 1
+
+# No probes.* block: kontinuum exposes no /startup or /live endpoints, so we
+# rely on Cloud Run's default TCP startup check instead of the chart's HTTP
+# probe defaults (which would target a nonexistent path).
+
+expose:
+  enabled: true
+  host: "console.nicklasfrahm.dev"
+
+env:
+  fromLiterals:
+    KONTINUUM_SERVER_ADDR: ":8080"
+    # Demo/smoke-test value only - no real Postgres instance backs this.
+    KONTINUUM_SERVER_STORAGE: "postgres://kontinuum:dummy@dummy-postgres.invalid:5432/kontinuum?sslmode=disable"
+    KONTINUUM_LOG_LEVEL: "info"
+    KONTINUUM_LOG_FORMAT: "console"
+    # OIDC via Dex, public client "kontinuum" (no client secret, PKCE only;
+    # see deploy/services/dex/00-base.yml's staticClients entry).
+    KONTINUUM_OIDC_ISSUER_URL: "https://auth.nicklasfrahm.dev"
+    KONTINUUM_OIDC_CLIENT_ID: "kontinuum"
+    KONTINUUM_OIDC_REDIRECT_URL: "https://console.nicklasfrahm.dev/app"
+    KONTINUUM_OIDC_ADMIN_GROUPS: "nicklasfrahm-dev:platform"

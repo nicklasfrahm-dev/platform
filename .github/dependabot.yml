@@ -5,8 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 15
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "fix(deps)"
     groups:
       actions:
         patterns:
@@ -15,6 +17,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 15
     commit-message:
       prefix: "fix(deps)"
     groups:

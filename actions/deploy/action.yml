@@ -21,7 +21,7 @@ runs:
   using: composite
   steps:
     - name: Checkout configuration repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       with:
         repository: nicklasfrahm-dev/platform
         ssh-key: ${{ inputs.github-ssh-key }}
@@ -58,7 +58,7 @@ runs:
         fi
 
     - name: Install yq
-      uses: dcarbone/install-yq-action@4075b4dca348d74bd83f2bf82d30f25d7c54539b
+      uses: dcarbone/install-yq-action@4075b4dca348d74bd83f2bf82d30f25d7c54539b # v1.3.1
 
     - name: Update image tag in environment file
       shell: bash

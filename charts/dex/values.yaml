@@ -1,12 +1,16 @@
 dex:
   enabled: true
-  # Bumped by hand alongside Chart.yaml's version whenever the theme
-  # ConfigMaps (charts/dex/files/web) change. ConfigMap volume contents
-  # update in the running pod on their own, but dex reads its templates
-  # once at startup, so nothing short of a pod restart picks them up -
-  # changing this annotation is what forces that restart.
+  # Mirrors Chart.yaml's version - bump it by hand every time that value
+  # changes. ConfigMap volume contents and other values-driven config
+  # update in the running pod on their own, but dex only reads them once
+  # at startup, so nothing short of a pod restart ever picks them up.
+  # Changing this annotation is what forces that restart.
   podAnnotations:
-    dex.nicklasfrahm.dev/theme-version: "1.1.1"
+    dex.nicklasfrahm.dev/chart-version: "1.2.0"
+  # Rolling out on every chart bump (see podAnnotations above) means old
+  # ReplicaSets pile up faster than the chart's default of 10; 3 is
+  # plenty for rollback purposes here.
+  revisionHistoryLimit: 3
   config:
     logger:
       level: "warn"

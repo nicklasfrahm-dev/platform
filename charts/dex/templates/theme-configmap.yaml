@@ -1,0 +1,61 @@
+{{- if .Values.dex.config.frontend }}
+# Each ConfigMap below mirrors one real directory (or the root file) of dex's
+# web filesystem, so it can be mounted as-is with no volumeMounts[].items
+# path remapping to keep in sync as files are added or removed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme-root
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "dex.labels" . | nindent 4 }}
+data:
+  robots.txt: |
+{{ .Files.Get "files/web/robots.txt" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme-static
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "dex.labels" . | nindent 4 }}
+data:
+  main.css: |
+{{ .Files.Get "files/web/static/main.css" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme-static-img
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "dex.labels" . | nindent 4 }}
+data:
+{{- range $path, $ignored := .Files.Glob "files/web/static/img/*.svg" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{ end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme-templates
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "dex.labels" . | nindent 4 }}
+data:
+{{- range $path, $ignored := .Files.Glob "files/web/templates/*.html" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{ end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme-kontinuum
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "dex.labels" . | nindent 4 }}
+data:
+  styles.css: |
+{{ .Files.Get "files/web/themes/kontinuum/styles.css" | indent 4 }}
+binaryData:
+  logo.png: {{ .Files.Get "files/web/themes/kontinuum/logo.png" | b64enc }}
+  favicon.png: {{ .Files.Get "files/web/themes/kontinuum/favicon.png" | b64enc }}
+{{- end }}

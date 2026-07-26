@@ -56,6 +56,5 @@ data:
   styles.css: |
 {{ .Files.Get "files/web/themes/kontinuum/styles.css" | indent 4 }}
 binaryData:
-  logo.png: {{ .Files.Get "files/web/themes/kontinuum/logo.png" | b64enc }}
   favicon.png: {{ .Files.Get "files/web/themes/kontinuum/favicon.png" | b64enc }}
 {{- end }}

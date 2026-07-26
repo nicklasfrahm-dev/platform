@@ -11,10 +11,26 @@
     <link href="{{ url .ReqPath "static/main.css" }}" rel="stylesheet">
     <link href="{{ url .ReqPath "theme/styles.css" }}" rel="stylesheet">
     <link rel="icon" href="{{ url .ReqPath "theme/favicon.png" }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        accent: '#E0924F'
+                    },
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
   </head>
 
-  <body class="theme-body">
-    <canvas id="mesh-canvas" aria-hidden="true"></canvas>
+  <body class="theme-body bg-neutral-950 text-neutral-100 min-h-screen font-mono flex justify-end relative overflow-hidden">
+    <canvas id="mesh-canvas" aria-hidden="true" class="fixed inset-0 z-0 block w-full h-full"></canvas>
     <script>
     (() => {
         // A triangulated mesh whose nodes slowly wander to new random spots
@@ -182,7 +198,7 @@
     })();
     </script>
 
-    <div class="dex-container">
-      <div class="theme-wordmark-wrap">
-        <span class="theme-wordmark">nicklasfrahm.dev</span>
+    <div class="dex-container relative z-10 m-0 flex w-full max-w-md min-w-[320px] min-h-screen shrink-0 flex-col items-start justify-center border-l border-neutral-800 bg-neutral-900/30 px-12 py-12 backdrop-blur-sm text-left">
+      <div class="theme-wordmark-wrap mb-2">
+        <span class="theme-wordmark block text-accent font-bold text-2xl tracking-tight lowercase">nicklasfrahm.dev</span>
       </div>

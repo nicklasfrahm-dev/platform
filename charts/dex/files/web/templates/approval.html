@@ -1,38 +1,36 @@
 {{ template "header.html" . }}
 
-<div class="theme-panel">
-  <h2 class="theme-heading">Grant Access</h2>
+<div class="theme-panel w-full">
+  <h2 class="theme-heading text-base text-neutral-100 mb-6">Grant Access</h2>
 
-  <hr class="dex-separator">
-  <div>
+  <div class="mb-6">
     {{ if .Scopes }}
-    <div class="dex-subtle-text">{{ .Client }} would like to:</div>
-    <ul class="dex-list">
+    <div class="dex-subtle-text text-neutral-500 text-sm mb-3">{{ .Client }} would like to:</div>
+    <ul class="dex-list text-neutral-500 text-sm pl-5 space-y-1">
       {{ range $scope := .Scopes }}
       <li>{{ $scope }}</li>
       {{ end }}
     </ul>
     {{ else }}
-    <div class="dex-subtle-text">{{ .Client }} has not requested any personal information</div>
+    <div class="dex-subtle-text text-neutral-500 text-sm">{{ .Client }} has not requested any personal information</div>
     {{ end }}
   </div>
-  <hr class="dex-separator">
 
   <div>
-    <div class="theme-form-row">
+    <div class="theme-form-row mb-4">
       <form method="post">
         <input type="hidden" name="req" value="{{ .AuthReqID }}"/>
         <input type="hidden" name="approval" value="approve">
-        <button type="submit" class="dex-btn theme-btn--success">
+        <button type="submit" class="dex-btn theme-btn--success w-full rounded-lg bg-accent px-4 py-3 text-sm font-bold uppercase tracking-wider text-neutral-950 transition-colors hover:bg-accent/90">
             <span class="dex-btn-text">Grant Access</span>
         </button>
       </form>
     </div>
-    <div class="theme-form-row">
+    <div class="theme-form-row mb-4">
       <form method="post">
         <input type="hidden" name="req" value="{{ .AuthReqID }}"/>
         <input type="hidden" name="approval" value="rejected">
-        <button type="submit" class="dex-btn theme-btn-provider">
+        <button type="submit" class="dex-btn theme-btn-provider w-full rounded-lg bg-accent px-4 py-3 text-sm font-bold uppercase tracking-wider text-neutral-950 transition-colors hover:bg-accent/90">
             <span class="dex-btn-text">Cancel</span>
         </button>
       </form>

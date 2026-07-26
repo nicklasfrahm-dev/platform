@@ -6,6 +6,44 @@ dex:
       format: "json"
     storage:
       type: memory
+    frontend:
+      dir: /web
+      theme: kontinuum
+
+  volumes:
+    - name: dex-theme-root
+      configMap:
+        name: dex-theme-root
+    - name: dex-theme-static
+      configMap:
+        name: dex-theme-static
+    - name: dex-theme-static-img
+      configMap:
+        name: dex-theme-static-img
+    - name: dex-theme-templates
+      configMap:
+        name: dex-theme-templates
+    - name: dex-theme-kontinuum
+      configMap:
+        name: dex-theme-kontinuum
+
+  volumeMounts:
+    - name: dex-theme-root
+      mountPath: /web/robots.txt
+      subPath: robots.txt
+      readOnly: true
+    - name: dex-theme-static
+      mountPath: /web/static
+      readOnly: true
+    - name: dex-theme-static-img
+      mountPath: /web/static/img
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates
+      readOnly: true
+    - name: dex-theme-kontinuum
+      mountPath: /web/themes/kontinuum
+      readOnly: true
 
 httpRoute:
   enabled: false

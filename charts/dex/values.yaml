@@ -38,8 +38,45 @@ dex:
     - name: dex-theme-static-img
       mountPath: /web/static/img
       readOnly: true
+    # Mounted file-by-file (subPath) rather than as a whole directory: dex's
+    # template loader does its own fs.ReadDir("templates") to discover files,
+    # and a directory-mounted ConfigMap's "..data" symlink (used for atomic
+    # updates) shows up in that listing and fails to parse as a template.
     - name: dex-theme-templates
-      mountPath: /web/templates
+      mountPath: /web/templates/approval.html
+      subPath: approval.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/device.html
+      subPath: device.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/device_success.html
+      subPath: device_success.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/error.html
+      subPath: error.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/footer.html
+      subPath: footer.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/header.html
+      subPath: header.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/login.html
+      subPath: login.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/oob.html
+      subPath: oob.html
+      readOnly: true
+    - name: dex-theme-templates
+      mountPath: /web/templates/password.html
+      subPath: password.html
       readOnly: true
     - name: dex-theme-kontinuum
       mountPath: /web/themes/kontinuum

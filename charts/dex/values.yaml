@@ -8,9 +8,9 @@ dex:
   podAnnotations:
     dex.nicklasfrahm.dev/chart-version: "1.2.0"
   # Rolling out on every chart bump (see podAnnotations above) means old
-  # ReplicaSets pile up faster than the chart's default of 10; 3 is
+  # ReplicaSets pile up faster than the chart's default of 10; 5 is
   # plenty for rollback purposes here.
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 5
   config:
     logger:
       level: "warn"

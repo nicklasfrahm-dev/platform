@@ -12,7 +12,9 @@ dex:
       level: "warn"
       format: "json"
     storage:
-      type: memory
+      type: kubernetes
+      config:
+        inCluster: true
     frontend:
       dir: /web
       theme: kontinuum

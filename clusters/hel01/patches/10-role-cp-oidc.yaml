@@ -1,0 +1,7 @@
+cluster:
+  # Enable OIDC authentication.
+  apiServer:
+    extraArgs:
+      oidc-issuer-url: https://auth.nicklasfrahm.dev
+      oidc-client-id: kubernetes
+      oidc-username-claim: email

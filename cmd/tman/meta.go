@@ -20,9 +20,24 @@ type Pool struct {
 }
 
 type Meta struct {
-	Name     string `yaml:"name"`
+	Name string `yaml:"name"`
+	// Endpoint is the cluster's canonical controlplane endpoint.
 	Endpoint string `yaml:"endpoint"`
-	Pools    []Pool `yaml:"pools"`
+	// Domain, if set, qualifies every node's hostname (e.g. "antelope" becomes
+	// "antelope.<domain>"), matching Talos's FQDN parsing of HostnameConfig.hostname.
+	Domain string `yaml:"domain,omitempty"`
+	// KubernetesVersion pins the exact Kubernetes version passed to
+	// `talosctl gen config --kubernetes-version`. If empty, talosctl's own
+	// bundled default is used.
+	KubernetesVersion string `yaml:"kubernetesVersion,omitempty"`
+	// TalosVersion pins the version contract passed to
+	// `talosctl gen config --talos-version`, matching the cluster's actual
+	// running Talos version. This controls which config fields/defaults
+	// talosctl generates (see siderolabs/talos's VersionContract). If empty,
+	// talosctl's own (client) version is used as the contract, which can
+	// silently drift from what the cluster is actually running.
+	TalosVersion string `yaml:"talosVersion,omitempty"`
+	Pools        []Pool `yaml:"pools"`
 }
 
 func loadMeta(clusterDir string) (*Meta, error) {

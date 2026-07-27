@@ -107,6 +107,14 @@ func buildGenArgs(meta *Meta, secretBundle, outputDir string, patches []Patch) [
 		"--force",
 	}
 
+	if meta.KubernetesVersion != "" {
+		args = append(args, "--kubernetes-version", meta.KubernetesVersion)
+	}
+
+	if meta.TalosVersion != "" {
+		args = append(args, "--talos-version", meta.TalosVersion)
+	}
+
 	for _, patch := range patches {
 		switch patch.Kind {
 		case PatchBase:

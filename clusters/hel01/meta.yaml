@@ -1,0 +1,11 @@
+name: hel01
+endpoint: https://antelope.nicklasfrahm.dev:6443
+domain: nicklasfrahm.dev
+kubernetesVersion: v1.36.3
+talosVersion: v1.13.7
+pools:
+  - name: controlplane
+    role: controlplane
+    nodes:
+      - name: antelope
+        host: 95.216.166.134

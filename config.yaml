@@ -1,12 +1,4 @@
-talos:
-  # Configure the desired version of Talos.
-  # Reference: https://github.com/siderolabs/talos/releases/latest
-  version: v1.10.6
-
 kubernetes:
-  # Configure the desired Kubernetes version.
-  # Reference: https://endoflife.date/kubernetes
-  version: v1.30.11
   oidc:
     # We use Auth0, because Google's PKCE does not
     # appear to work without a client secret.

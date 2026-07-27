@@ -1,5 +1,8 @@
 name: cph02
 endpoint: https://cph02.nicklasfrahm.dev:6443
+domain: nicklasfrahm.dev
+kubernetesVersion: v1.35.2
+talosVersion: v1.12.6
 pools:
   - name: controlplane
     role: controlplane
@@ -18,8 +21,6 @@ pools:
   - name: pi
     role: worker
     nodes:
-      - name: elk
-        host: 10.0.20.5
       - name: fox
         host: 10.0.20.6
       - name: genet

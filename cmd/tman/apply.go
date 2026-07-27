@@ -75,7 +75,7 @@ func (a *application) runApply(cmd *cobra.Command, args []string) error {
 		for _, node := range pool.Nodes {
 			total++
 
-			err = applyNode(talosconfig, node, configFile, reboot)
+			err = applyNode(talosconfig, node, configFile, meta.Domain, reboot)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "  [%s/%s] ERROR: %v\n", node.Host, node.Name, err)
 				failed++
@@ -95,10 +95,10 @@ func (a *application) runApply(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func applyNode(talosconfig string, node Node, configFile string, reboot bool) error {
+func applyNode(talosconfig string, node Node, configFile, domain string, reboot bool) error {
 	_, _ = fmt.Fprintf(os.Stdout, "  Applying [%s/%s]\n", node.Host, node.Name)
 
-	config, err := buildNodeConfig(configFile, node)
+	config, err := buildNodeConfig(configFile, node, domain)
 	if err != nil {
 		return fmt.Errorf("build config: %w", err)
 	}
@@ -156,7 +156,7 @@ func applyNode(talosconfig string, node Node, configFile string, reboot bool) er
 	return nil
 }
 
-func buildNodeConfig(configFile string, node Node) ([]byte, error) {
+func buildNodeConfig(configFile string, node Node, domain string) ([]byte, error) {
 	data, err := os.ReadFile(configFile) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read config: %w", err)
@@ -167,7 +167,12 @@ func buildNodeConfig(configFile string, node Node) ([]byte, error) {
 	buf.Write(filterDocs(data, "HostnameConfig"))
 
 	if node.Name != "" {
-		fmt.Fprintf(&buf, "\n---\napiVersion: v1alpha1\nkind: HostnameConfig\nhostname: %s\n", node.Name)
+		hostname := node.Name
+		if domain != "" {
+			hostname = node.Name + "." + domain
+		}
+
+		fmt.Fprintf(&buf, "\n---\napiVersion: v1alpha1\nkind: HostnameConfig\nhostname: %s\n", hostname)
 	}
 
 	return buf.Bytes(), nil

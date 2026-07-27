@@ -1,11 +1,4 @@
 cluster:
-  allowSchedulingOnControlPlanes: ${allow_scheduling_on_control_planes}
-  # Enable OIDC authentication.
-  apiServer:
-    extraArgs:
-      oidc-issuer-url: ${oidc_issuer_url}
-      oidc-client-id: ${oidc_client_id}
-      oidc-username-claim: email
   network:
     # Configure Pod and Service CIDR ranges.
     podSubnets:
@@ -99,7 +92,7 @@ cluster:
                     - |
                       helm upgrade --install cilium oci://ghcr.io/nicklasfrahm-dev/charts/cilium \
                         --namespace kube-system \
-                        --set cilium.operator.replicas=${cilium_operator_replicas}
+                        --set cilium.operator.replicas=1
 
 machine:
   nodeLabels:

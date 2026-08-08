@@ -31,6 +31,7 @@ expose:
 env:
   fromLiterals:
     KONTINUUM_SERVER_ADDR: ":8080"
+    KONTINUUM_SERVER_DNS_DOMAIN: "nicklasfrahm.dev"
     # OIDC via Dex, public client "kontinuum" (no client secret, PKCE only;
     # see deploy/services/dex/00-base.yml's staticClients entry).
     KONTINUUM_OIDC_ISSUER_URL: "https://auth.nicklasfrahm.dev"

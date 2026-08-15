@@ -5,4 +5,4 @@ env:
     KONTINUUM_SERVER_STORAGE:
       PRD_KONTINUUM_SERVER_STORAGE: latest
 image:
-  tag: v0.22.1
+  tag: v0.23.0

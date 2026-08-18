@@ -22,8 +22,9 @@ resources:
 # cache when installing addon charts. See
 # https://github.com/nicklasfrahm-dev/kontinuum/issues/103.
 volumes:
-  - name: "scratch"
-    type: "in-memory"
+  scratch:
+    enabled: true
+    type: "Memory"
     mountPath: "/tmp"
 
 autoscaling:

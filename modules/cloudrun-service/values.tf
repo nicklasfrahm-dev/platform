@@ -171,6 +171,18 @@ locals {
     f => service if try(service.values.expose.enabled, false)
   }
 
+  # values.volumes is a map keyed by volume name: { enabled, type,
+  # mountPath }. Only enabled entries are kept here so main.tf's
+  # dynamic "volumes"/"volume_mounts" blocks don't need to repeat the
+  # filter.
+  enabled_volumes = {
+    for f, service in local.services :
+    f => {
+      for name, volume in try(service.values.volumes, {}) :
+      name => volume if try(volume.enabled, false)
+    }
+  }
+
   # One IAM grant per (service, secret) pair referenced via env.fromSecrets,
   # keyed so the same secret referenced by more than one env var on the same
   # service is only granted once.

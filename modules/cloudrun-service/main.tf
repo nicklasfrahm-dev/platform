@@ -58,16 +58,17 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.this[each.key].email
 
-    # values.volumes is a list of { name, type, mountPath }. type
-    # "in-memory" is the only kind currently needed (e.g. a writable /tmp
-    # under an otherwise read-only root filesystem) and maps to Cloud Run's
-    # tmpfs-backed empty_dir.
+    # local.enabled_volumes' type follows Kubernetes' EmptyDirVolumeSource
+    # medium enum ("Memory" is the only value Cloud Run's empty_dir volumes
+    # currently support, e.g. for a writable /tmp under an otherwise
+    # read-only root filesystem); upper() translates it to Cloud Run's own
+    # MEMORY medium enum.
     dynamic "volumes" {
-      for_each = try(each.value.values.volumes, [])
+      for_each = local.enabled_volumes[each.key]
       content {
-        name = volumes.value.name
+        name = volumes.key
         empty_dir {
-          medium = "MEMORY"
+          medium = upper(volumes.value.type)
         }
       }
     }
@@ -136,9 +137,9 @@ resource "google_cloud_run_v2_service" "this" {
       }
 
       dynamic "volume_mounts" {
-        for_each = try(each.value.values.volumes, [])
+        for_each = local.enabled_volumes[each.key]
         content {
-          name       = volume_mounts.value.name
+          name       = volume_mounts.key
           mount_path = volume_mounts.value.mountPath
         }
       }

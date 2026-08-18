@@ -85,7 +85,7 @@ jobs:
     needs:
       - release
       - discover
-    if: needs.release.outputs.released == 'true'
+    if: needs.release.outputs.released == 'true' && needs.discover.outputs.matrix != '{"service":[]}'
     runs-on: ubuntu-latest
     permissions:
       contents: read

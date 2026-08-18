@@ -58,6 +58,20 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.this[each.key].email
 
+    # values.volumes is a list of { name, type, mountPath }. type
+    # "in-memory" is the only kind currently needed (e.g. a writable /tmp
+    # under an otherwise read-only root filesystem) and maps to Cloud Run's
+    # tmpfs-backed empty_dir.
+    dynamic "volumes" {
+      for_each = try(each.value.values.volumes, [])
+      content {
+        name = volumes.value.name
+        empty_dir {
+          medium = "MEMORY"
+        }
+      }
+    }
+
     containers {
       image = "${each.value.values.image.repository}:${each.value.values.image.tag}"
 
@@ -118,6 +132,14 @@ resource "google_cloud_run_v2_service" "this" {
           initial_delay_seconds = liveness_probe.value.initialDelaySeconds
           period_seconds        = liveness_probe.value.periodSeconds
           failure_threshold     = liveness_probe.value.failureThreshold
+        }
+      }
+
+      dynamic "volume_mounts" {
+        for_each = try(each.value.values.volumes, [])
+        content {
+          name       = volume_mounts.value.name
+          mount_path = volume_mounts.value.mountPath
         }
       }
     }

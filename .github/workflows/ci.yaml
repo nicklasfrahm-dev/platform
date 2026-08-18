@@ -78,7 +78,7 @@ jobs:
         run: go generate ./...
 
       - name: Report coverage
-        uses: nicklasfrahm-dev/go-coverage-action@e9e14fc9f3b9e3577c4f31e9a5620249b2d8b171 # v2.0.4
+        uses: nicklasfrahm-dev/go-coverage-action@c98422f704df2fcf76ae75e0f97dd6c482b4f504 # v2.0.5
         with:
           fail-coverage: never
           # Attribute cross-package coverage so integration tests in cmd/wallet

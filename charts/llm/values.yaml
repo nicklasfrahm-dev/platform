@@ -30,13 +30,13 @@ model:
         # Memory and performance optimizations.
         - "--quantization=compressed-tensors"
         - "--limit-mm-per-prompt={\"image\": 0, \"video\": 0}"
-        - "--max-model-len=180224"
-        - "--max-num-batched-tokens=8192"
+        - "--max-model-len=131072"
+        - "--max-num-batched-tokens=4096"
         - "--enable-chunked-prefill"
       gpu:
         profile:
           rtx3090-1x:
-            maxNumSeqs: 4
+            maxNumSeqs: 8
             gpuMemoryUtilization: 0.985
             tensorParallelSize: 1
             resources: &rtx3090-1x-resources

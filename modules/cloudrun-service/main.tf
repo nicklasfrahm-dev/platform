@@ -58,6 +58,21 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.this[each.key].email
 
+    # local.enabled_volumes' type follows Kubernetes' EmptyDirVolumeSource
+    # medium enum ("Memory" is the only value Cloud Run's empty_dir volumes
+    # currently support, e.g. for a writable /tmp under an otherwise
+    # read-only root filesystem); upper() translates it to Cloud Run's own
+    # MEMORY medium enum.
+    dynamic "volumes" {
+      for_each = local.enabled_volumes[each.key]
+      content {
+        name = volumes.key
+        empty_dir {
+          medium = upper(volumes.value.type)
+        }
+      }
+    }
+
     containers {
       image = "${each.value.values.image.repository}:${each.value.values.image.tag}"
 
@@ -118,6 +133,14 @@ resource "google_cloud_run_v2_service" "this" {
           initial_delay_seconds = liveness_probe.value.initialDelaySeconds
           period_seconds        = liveness_probe.value.periodSeconds
           failure_threshold     = liveness_probe.value.failureThreshold
+        }
+      }
+
+      dynamic "volume_mounts" {
+        for_each = local.enabled_volumes[each.key]
+        content {
+          name       = volume_mounts.key
+          mount_path = volume_mounts.value.mountPath
         }
       }
     }

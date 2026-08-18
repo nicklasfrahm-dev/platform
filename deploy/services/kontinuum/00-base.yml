@@ -17,6 +17,16 @@ resources:
   cpu: "1"
   memory: "512Mi"
 
+# The container runs with a read-only root filesystem and no writable HOME,
+# but Helm's OCI registry client needs somewhere to write its docker-auth
+# cache when installing addon charts. See
+# https://github.com/nicklasfrahm-dev/kontinuum/issues/103.
+volumes:
+  scratch:
+    enabled: true
+    type: "Memory"
+    mountPath: "/tmp"
+
 autoscaling:
   minReplicas: 0
   maxReplicas: 1

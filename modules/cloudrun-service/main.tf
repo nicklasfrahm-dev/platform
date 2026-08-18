@@ -58,6 +58,11 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.this[each.key].email
 
+    # In-memory volumes are only supported by Cloud Run's second-generation
+    # execution environment - the default (gen1) accepts this config without
+    # error but the container then never starts.
+    execution_environment = length(local.enabled_volumes[each.key]) > 0 ? "EXECUTION_ENVIRONMENT_GEN2" : null
+
     # local.enabled_volumes' type follows Kubernetes' EmptyDirVolumeSource
     # medium enum ("Memory" is the only value Cloud Run's empty_dir volumes
     # currently support, e.g. for a writable /tmp under an otherwise

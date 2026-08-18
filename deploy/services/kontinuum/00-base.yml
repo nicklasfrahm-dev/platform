@@ -31,10 +31,11 @@ expose:
 env:
   fromLiterals:
     KONTINUUM_SERVER_ADDR: ":8080"
-    KONTINUUM_SERVER_DNS_DOMAIN: "nicklasfrahm.dev"
     # OIDC via Dex, public client "kontinuum" (no client secret, PKCE only;
     # see deploy/services/dex/00-base.yml's staticClients entry).
     KONTINUUM_OIDC_ISSUER_URL: "https://auth.nicklasfrahm.dev"
     KONTINUUM_OIDC_CLIENT_ID: "kontinuum"
     KONTINUUM_OIDC_REDIRECT_URL: "https://console.nicklasfrahm.dev/app"
     KONTINUUM_OIDC_ADMIN_GROUPS: "nicklasfrahm-dev:platform"
+    # Configure the gRPC endpoint for the etcd proxy.
+    KONTINUUM_SERVER_GRPC_ENDPOINT: "console.nicklasfrahm.dev:443"

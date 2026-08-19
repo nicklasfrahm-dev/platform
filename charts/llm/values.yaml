@@ -52,9 +52,13 @@ model:
       modelId: "cyankiwi/Qwen3.8-27B-AWQ-INT4"
       servedModelName: "qwen-3.8"
       args:
-        - "--quantization=awq"
+        # Model capability optimizations.
+        - "--tool-call-parser=qwen3"
+        - "--reasoning-parser=qwen3"
+        # Memory and performance optimizations.
+        - "--quantization=compressed-tensors"
         - "--kv-cache-dtype=fp8"
-        - "--max-model-len=131072"
+        - "--max-model-len=65536"
         - "--enable-prefix-caching"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=4096"

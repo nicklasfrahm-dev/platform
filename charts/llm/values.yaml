@@ -48,20 +48,22 @@ model:
                 nvidia.com/gpu: 1
                 memory: "12Gi"
     # Untested: RTX 3090 (24GB).
-    qwen-38:
-      modelId: "cyankiwi/Qwen3.8-27B-AWQ-INT4"
-      servedModelName: "qwen-3.8"
+    qwen36-27b:
+      modelId: "Intel/Qwen3.6-27B-int4-AutoRound"
+      servedModelName: "qwen3.6-27b"
       args:
         # Model capability optimizations.
-        - "--tool-call-parser=qwen3"
+        - "--tool-call-parser=qwen3_coder"
         - "--reasoning-parser=qwen3"
         # Memory and performance optimizations.
         - "--quantization=compressed-tensors"
+        # --speculative-config '{"method":"mtp","num_speculative_tokens":3}' \
         - "--kv-cache-dtype=fp8"
         - "--max-model-len=65536"
         - "--enable-prefix-caching"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=4096"
+        - "--async-scheduling"
       gpu:
         profile:
           rtx3090-1x:

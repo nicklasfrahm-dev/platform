@@ -59,7 +59,7 @@ model:
         - "--quantization=compressed-tensors"
         # --speculative-config '{"method":"mtp","num_speculative_tokens":3}' \
         - "--kv-cache-dtype=fp8"
-        - "--max-model-len=65536"
+        - "--max-model-len=81920"
         - "--enable-prefix-caching"
         - "--enable-chunked-prefill"
         - "--max-num-batched-tokens=4096"
@@ -68,7 +68,7 @@ model:
         profile:
           rtx3090-1x:
             maxNumSeqs: 4
-            gpuMemoryUtilization: 0.985
+            gpuMemoryUtilization: 1.0
             tensorParallelSize: 1
             resources: *rtx3090-1x-resources
     # Stable: RTX 3090 (24GB). Dense attention on all 48 layers (no sliding

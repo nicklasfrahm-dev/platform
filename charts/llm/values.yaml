@@ -36,7 +36,7 @@ model:
       gpu:
         profile:
           rtx3090-1x:
-            maxNumSeqs: 8
+            maxNumSeqs: 4
             gpuMemoryUtilization: 0.985
             tensorParallelSize: 1
             resources: &rtx3090-1x-resources
@@ -47,6 +47,29 @@ model:
               limits:
                 nvidia.com/gpu: 1
                 memory: "12Gi"
+    # Untested: RTX 3090 (24GB).
+    qwen36-27b:
+      modelId: "Intel/Qwen3.6-27B-int4-AutoRound"
+      servedModelName: "qwen3.6-27b"
+      args:
+        # Model capability optimizations.
+        - "--tool-call-parser=qwen3_coder"
+        - "--reasoning-parser=qwen3"
+        # Memory and performance optimizations.
+        - "--quantization=compressed-tensors"
+        - "--kv-cache-dtype=fp8"
+        - "--max-model-len=81920"
+        - "--enable-prefix-caching"
+        - "--enable-chunked-prefill"
+        - "--max-num-batched-tokens=4096"
+        - "--async-scheduling"
+      gpu:
+        profile:
+          rtx3090-1x:
+            maxNumSeqs: 4
+            gpuMemoryUtilization: 1.0
+            tensorParallelSize: 1
+            resources: *rtx3090-1x-resources
     # Stable: RTX 3090 (24GB). Dense attention on all 48 layers (no sliding
     # window, no vision tower), so unlike gemma4 the KV cache scales with
     # every token of context. The rtx3090-1x profile enables fp8 (e4m3) KV

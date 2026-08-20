@@ -57,7 +57,6 @@ model:
         - "--reasoning-parser=qwen3"
         # Memory and performance optimizations.
         - "--quantization=compressed-tensors"
-        # --speculative-config '{"method":"mtp","num_speculative_tokens":3}' \
         - "--kv-cache-dtype=fp8"
         - "--max-model-len=81920"
         - "--enable-prefix-caching"

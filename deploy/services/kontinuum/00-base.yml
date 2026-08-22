@@ -28,7 +28,7 @@ volumes:
     mountPath: "/tmp"
 
 autoscaling:
-  minReplicas: 0
+  minReplicas: 1
   maxReplicas: 1
 
 # No probes.* block: kontinuum exposes no /startup or /live endpoints, so we

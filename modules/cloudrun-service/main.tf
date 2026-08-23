@@ -90,7 +90,7 @@ resource "google_cloud_run_v2_service" "this" {
       ports {
         # "h2c" enables HTTP/2 cleartext to the container, required for gRPC
         # to work reliably; defaults to "http1" for plain HTTP services.
-        name           = try(each.value.values.service.protocol, "http1")
+        name           = try(local.port_name_by_protocol[each.value.values.service.protocol], "http1")
         container_port = each.value.values.service.containerPort
       }
 

@@ -44,13 +44,13 @@ service:
   # that hold connections open longer than that. null keeps Cloud Run's
   # default.
   timeoutSeconds: null
-  # Application protocol, following Kubernetes' appProtocol convention
+  # Follows Kubernetes' appProtocol convention
   # (https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol):
   # "http" or "kubernetes.io/h2c". Only consumed by Cloud Run today
   # (modules/cloudrun-service translates it to Cloud Run's own port name
   # enum); set to "kubernetes.io/h2c" to enable HTTP/2 cleartext to the
   # container, required for gRPC to work reliably.
-  protocol: "http"
+  appProtocol: "http"
 
 autoscaling:
   enabled: true

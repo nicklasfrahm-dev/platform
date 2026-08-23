@@ -54,12 +54,12 @@ locals {
     cbf01 = "us-central1"
   }
 
-  # values.service.protocol follows Kubernetes' appProtocol convention
+  # values.service.appProtocol follows Kubernetes' own appProtocol convention
   # (https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol)
   # rather than Cloud Run's own "http1"/"h2c" port name enum, so the chart
   # schema stays k8s-native. Anything not listed here (including the
   # unset/"http" default) maps to Cloud Run's "http1".
-  port_name_by_protocol = {
+  port_name_by_app_protocol = {
     "kubernetes.io/h2c" = "h2c"
   }
 

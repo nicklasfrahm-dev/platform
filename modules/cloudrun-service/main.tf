@@ -58,6 +58,12 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.this[each.key].email
 
+    # Cloud Run defaults to a 300s request timeout when unset, which forcibly
+    # closes long-lived connections (WebSocket, streaming gRPC) with an
+    # HTTP/2 GOAWAY(ENHANCE_YOUR_CALM). values.service.timeoutSeconds lets a
+    # service opt into a higher ceiling (max 3600s).
+    timeout = try(each.value.values.service.timeoutSeconds, null) != null ? "${each.value.values.service.timeoutSeconds}s" : null
+
     # In-memory volumes are only supported by Cloud Run's second-generation
     # execution environment - the default (gen1) accepts this config without
     # error but the container then never starts.
@@ -82,6 +88,9 @@ resource "google_cloud_run_v2_service" "this" {
       image = "${each.value.values.image.repository}:${each.value.values.image.tag}"
 
       ports {
+        # "h2c" enables HTTP/2 cleartext to the container, required for gRPC
+        # to work reliably; defaults to "http1" for plain HTTP services.
+        name           = try(each.value.values.service.protocol, "http1")
         container_port = each.value.values.service.containerPort
       }
 

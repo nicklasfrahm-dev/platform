@@ -12,6 +12,11 @@ image:
 
 service:
   containerPort: 8080
+  # kontinuum serves gRPC (etcd proxy) alongside HTTP on the same port; both
+  # settings are required for long-lived streaming gRPC connections to
+  # survive - see modules/cloudrun-service/main.tf.
+  protocol: "h2c"
+  timeoutSeconds: 3600
 
 resources:
   cpu: "1"

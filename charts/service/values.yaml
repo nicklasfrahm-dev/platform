@@ -35,6 +35,22 @@ service:
   type: ClusterIP
   port: 80
   containerPort: 8080
+  # Cloud Run only (modules/cloudrun-service). Ignored on Kubernetes, which
+  # has no per-request timeout at this layer.
+  #
+  # Request timeout in seconds. Cloud Run defaults to 300s when unset, which
+  # forcibly closes long-lived connections (WebSocket, streaming gRPC) with
+  # an HTTP/2 GOAWAY(ENHANCE_YOUR_CALM). Set higher (max 3600) for services
+  # that hold connections open longer than that. null keeps Cloud Run's
+  # default.
+  timeoutSeconds: null
+  # Follows Kubernetes' appProtocol convention
+  # (https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol):
+  # "http" or "kubernetes.io/h2c". Only consumed by Cloud Run today
+  # (modules/cloudrun-service translates it to Cloud Run's own port name
+  # enum); set to "kubernetes.io/h2c" to enable HTTP/2 cleartext to the
+  # container, required for gRPC to work reliably.
+  appProtocol: "http"
 
 autoscaling:
   enabled: true

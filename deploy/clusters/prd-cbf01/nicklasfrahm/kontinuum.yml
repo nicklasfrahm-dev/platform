@@ -6,4 +6,4 @@
 # with every other release file's convention.
 chart:
   name: service
-  tag: 0.3.2
+  tag: 0.3.3

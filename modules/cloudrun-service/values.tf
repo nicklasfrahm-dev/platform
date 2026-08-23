@@ -54,6 +54,16 @@ locals {
     cbf01 = "us-central1"
   }
 
+  # values.service.appProtocol follows Kubernetes' own appProtocol convention
+  # (https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol)
+  # rather than Cloud Run's own "http1"/"h2c" port name enum, so the chart
+  # schema stays k8s-native. Anything not listed here (including unset) maps
+  # to Cloud Run's "http1".
+  port_name_by_app_protocol = {
+    "http"              = "http1"
+    "kubernetes.io/h2c" = "h2c"
+  }
+
   env_values = {
     for f, candidate in local.cloud_run_candidates :
     f => try(yamldecode(file("${var.values_dir}/${candidate.service}/10-env-${local.environments[f]}.yml")), {})

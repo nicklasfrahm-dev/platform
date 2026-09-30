@@ -1,7 +1,7 @@
 # Image configuration - override default image
 image:
   repository: "ghcr.io/nicklasfrahm-dev/prometheus-speedtest-exporter"
-  tag: "v1.1.8"
+  tag: "v1.2.0"
 
 # Service configuration - override default port
 service:

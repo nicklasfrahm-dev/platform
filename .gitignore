@@ -57,3 +57,6 @@ talosconfig
 
 # Talos generated cluster configs.
 **/gen/
+
+# Ignore LLM profiles.
+/values*.yaml

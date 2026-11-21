@@ -159,9 +159,25 @@ resource "google_cloud_run_v2_service" "this" {
       }
     }
 
-    scaling {
-      min_instance_count = each.value.values.autoscaling.minReplicas
-      max_instance_count = each.value.values.autoscaling.maxReplicas
+    # Omitted when local.scale_to_zero - see the resource-level "scaling"
+    # block below.
+    dynamic "scaling" {
+      for_each = local.scale_to_zero[each.key] ? [] : [each.value.values.autoscaling]
+      content {
+        min_instance_count = scaling.value.minReplicas
+        max_instance_count = scaling.value.maxReplicas
+      }
+    }
+  }
+
+  # Cloud Run's automatic scaling (template.scaling above) rejects
+  # max_instance_count = 0 - taking a service fully offline instead requires
+  # this resource-level manual scaling mode.
+  dynamic "scaling" {
+    for_each = local.scale_to_zero[each.key] ? [true] : []
+    content {
+      scaling_mode          = "MANUAL"
+      manual_instance_count = 0
     }
   }
 }

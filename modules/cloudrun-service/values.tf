@@ -181,6 +181,15 @@ locals {
     f => service if try(service.values.expose.enabled, false)
   }
 
+  # Cloud Run's automatic scaling (template.scaling) rejects
+  # max_instance_count = 0 - scaling a service fully off instead requires
+  # switching it to the resource-level manual scaling mode. See main.tf's
+  # dynamic "scaling" blocks on google_cloud_run_v2_service.this.
+  scale_to_zero = {
+    for f, service in local.services :
+    f => service.values.autoscaling.minReplicas == 0 && service.values.autoscaling.maxReplicas == 0
+  }
+
   # values.volumes is a map keyed by volume name: { enabled, type,
   # mountPath }. Only enabled entries are kept here so main.tf's
   # dynamic "volumes"/"volume_mounts" blocks don't need to repeat the

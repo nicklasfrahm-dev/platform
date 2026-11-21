@@ -33,8 +33,8 @@ volumes:
     mountPath: "/tmp"
 
 autoscaling:
-  minReplicas: 1
-  maxReplicas: 1
+  minReplicas: 0
+  maxReplicas: 0
 
 # No probes.* block: kontinuum exposes no /startup or /live endpoints, so we
 # rely on Cloud Run's default TCP startup check instead of the chart's HTTP
